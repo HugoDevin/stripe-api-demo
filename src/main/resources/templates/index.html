@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><title>Shop</title></head>
+<body>
+<h1>商品列表</h1>
+<form action="/checkout" method="post">
+    <label for="product">選擇商品:</label>
+
+    <select id="product" name="product" onchange="updateAmount()">
+        <option th:each="entry : ${products}"
+                th:value="${entry.key}"
+                th:text="${entry.key + ' - $' + (entry.value / 100.0)}"
+                th:data-price="${entry.value}">
+        </option>
+    </select>
+    <input type="hidden" name="amount" id="amount" th:value="${firstAmount}">
+    <button type="submit">購買</button>
+</form>
+<a href="/orders">查看訂單</a>
+
+<script>
+    function updateAmount() {
+        const select = document.getElementById("product");
+        const amount = select.options[select.selectedIndex].getAttribute("data-price");
+        document.getElementById("amount").value = amount;
+    }
+</script>
+</body>
+</html>
