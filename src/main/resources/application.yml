@@ -5,3 +5,12 @@ stripe:
   secret-key: ${STRIPE_SECRET_KEY}
   publishable-key: ${STRIPE_PUBLISHABLE_KEY}
 
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  cache:
+    type: redis
+    redis:
+      time-to-live: 10m

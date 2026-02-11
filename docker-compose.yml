@@ -3,9 +3,19 @@ version: "3.8"
 services:
   stripe-demo:
     build: .
+    depends_on:
+      - redis
     ports:
       - "8080:8080"
     environment:
       - STRIPE_SECRET_KEY=sk_test_yourSecretKeyHere
       - STRIPE_PUBLISHABLE_KEY=pk_test_yourPublishableKeyHere
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
     restart: unless-stopped
