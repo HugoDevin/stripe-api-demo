@@ -65,6 +65,7 @@
     const stripe = Stripe([[${@environment.getProperty('stripe.publishable-key')}]]);
 
     const clientSecret = /*[[${clientSecret}]]*/ '';
+    const orderId = /*[[${orderId}]]*/ '';
 
     const elements = stripe.elements();
 
@@ -101,6 +102,9 @@
             paymentMessage.textContent = error.message;
             submitBtn.disabled = false;
         } else if (paymentIntent.status === 'succeeded') {
+            await fetch(`/orders/${orderId}/complete`, {
+                method: 'POST'
+            });
             paymentMessage.textContent = '付款成功！';
             window.location.href = '/orders';
         }
