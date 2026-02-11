@@ -5,6 +5,9 @@ stripe:
   secret-key: ${STRIPE_SECRET_KEY}
   publishable-key: ${STRIPE_PUBLISHABLE_KEY}
 
+app:
+  frontend-origin: ${FRONTEND_ORIGIN:http://localhost:5173}
+
 spring:
   data:
     redis:

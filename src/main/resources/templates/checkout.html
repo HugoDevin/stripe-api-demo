@@ -62,7 +62,8 @@
 </form>
 
 <script th:inline="javascript">
-    const stripe = Stripe([[${@environment.getProperty('stripe.publishable-key')}]]);
+    const publishableKey = /*[[${@environment.getProperty('stripe.publishable-key')}]]*/ '';
+    const stripe = Stripe(publishableKey);
 
     const clientSecret = /*[[${clientSecret}]]*/ '';
     const orderId = /*[[${orderId}]]*/ '';
@@ -102,11 +103,11 @@
             paymentMessage.textContent = error.message;
             submitBtn.disabled = false;
         } else if (paymentIntent.status === 'succeeded') {
-            await fetch(`/orders/${orderId}/complete`, {
+            await fetch(`/web/orders/${orderId}/complete`, {
                 method: 'POST'
             });
             paymentMessage.textContent = '付款成功！';
-            window.location.href = '/orders';
+            window.location.href = '/web/orders';
         }
     });
 </script>
