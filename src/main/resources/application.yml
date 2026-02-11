@@ -11,6 +11,7 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
   cache:
-    type: redis
+    # 預設維持 Redis；可用 SPRING_CACHE_TYPE=simple 或 none 覆寫
+    type: ${SPRING_CACHE_TYPE:redis}
     redis:
       time-to-live: 10m
