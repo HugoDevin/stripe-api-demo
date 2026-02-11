@@ -2,6 +2,7 @@ package com.example.stripedemo.controller;
 
 import com.example.stripedemo.model.Order;
 import com.example.stripedemo.service.PaymentService;
+import com.example.stripedemo.service.ProductCatalogService;
 import com.stripe.model.PaymentIntent;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -15,15 +16,12 @@ import java.util.*;
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final ProductCatalogService productCatalogService;
     private final Map<String, Order> orderDB = new HashMap<>();
-    private static final Map<String, Long> PRODUCT_CATALOG = Map.of(
-            "Book", 1000L,
-            "Pen", 500L,
-            "Notebook", 750L
-    );
 
-    public PaymentController(PaymentService paymentService) {
+    public PaymentController(PaymentService paymentService, ProductCatalogService productCatalogService) {
         this.paymentService = paymentService;
+        this.productCatalogService = productCatalogService;
     }
 
 //    @GetMapping("/")
@@ -35,8 +33,8 @@ public class PaymentController {
 
     @GetMapping("/")
     public String index(Model model) {
-        // 商品名稱 -> 金額 (以 cents 為單位)
-        Map<String, Long> products = new LinkedHashMap<>(PRODUCT_CATALOG);
+        // 商品名稱 -> 金額 (以 cents 為單位)，先讀 Redis 快取，沒有才回源查詢
+        Map<String, Long> products = productCatalogService.getAllProducts();
         model.addAttribute("products", products);
         return "index";
     }
@@ -44,7 +42,7 @@ public class PaymentController {
 
     @PostMapping("/checkout")
     public String checkout(@RequestParam String product, Model model) throws Exception {
-        Long productPrice = PRODUCT_CATALOG.get(product);
+        Long productPrice = productCatalogService.getProductPrice(product);
         if (productPrice == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown product: " + product);
         }
