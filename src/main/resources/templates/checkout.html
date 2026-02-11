@@ -102,8 +102,12 @@
             paymentMessage.textContent = error.message;
             submitBtn.disabled = false;
         } else if (paymentIntent.status === 'succeeded') {
-            await fetch(`/orders/${orderId}/complete`, {
-                method: 'POST'
+            await fetch(`/api/orders/${orderId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status: 'succeeded' })
             });
             paymentMessage.textContent = '付款成功！';
             window.location.href = '/orders';
