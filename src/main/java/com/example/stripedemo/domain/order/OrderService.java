@@ -15,7 +15,7 @@ public class OrderService {
 
     private final Map<String, Order> orderDB = new ConcurrentHashMap<>();
 
-    public Order createPendingOrder(String product, long amount, String currency) {
+    public Order createPendingOrder(String product, long amount, String currency, String paymentIntentId) {
         String orderId = UUID.randomUUID().toString();
         Order order = new Order();
         order.setId(orderId);
@@ -23,16 +23,22 @@ public class OrderService {
         order.setAmount(amount);
         order.setCurrency(currency);
         order.setStatus("pending");
+        order.setPaymentIntentId(paymentIntentId);
         orderDB.put(orderId, order);
         return order;
     }
 
     public Order completeOrder(String orderId) {
+        Order order = getOrder(orderId);
+        order.setStatus("succeeded");
+        return order;
+    }
+
+    public Order getOrder(String orderId) {
         Order order = orderDB.get(orderId);
         if (order == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found: " + orderId);
         }
-        order.setStatus("succeeded");
         return order;
     }
 

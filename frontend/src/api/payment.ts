@@ -1,5 +1,5 @@
 import { http } from './http'
-import type { AppConfig, CheckoutResponse, Order, Product } from '../types/payment'
+import type { AppConfig, CheckoutResponse, Order, Product, PublicKeyResponse } from '../types/payment'
 
 export const paymentApi = {
   async getConfig() {
@@ -10,9 +10,16 @@ export const paymentApi = {
     const { data } = await http.get<Product[]>('/products')
     return data
   },
+  async getPublicKey() {
+    const { data } = await http.get<PublicKeyResponse>('/security/public-key')
+    return data
+  },
   async createCheckout(product: string) {
     const { data } = await http.post<CheckoutResponse>('/checkout', { product })
     return data
+  },
+  async payEncrypted(orderId: string, encryptedData: string) {
+    await http.post(`/orders/${orderId}/pay-encrypted`, { encryptedData })
   },
   async completeOrder(orderId: string) {
     await http.post(`/orders/${orderId}/complete`)
