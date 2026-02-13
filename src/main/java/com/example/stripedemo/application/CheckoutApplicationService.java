@@ -1,5 +1,6 @@
 package com.example.stripedemo.application;
 
+import com.example.stripedemo.controller.api.dto.CardData;
 import com.example.stripedemo.domain.order.OrderService;
 import com.example.stripedemo.model.Order;
 import com.example.stripedemo.service.PaymentService;
@@ -34,9 +35,20 @@ public class CheckoutApplicationService {
 
         long finalAmount = productPrice;
         PaymentIntent intent = paymentService.createPayment(finalAmount, "usd", product);
-        Order order = orderService.createPendingOrder(product, finalAmount, "USD");
+        Order order = orderService.createPendingOrder(product, finalAmount, "USD", intent.getId());
 
         return new CheckoutResult(intent.getClientSecret(), order.getId(), product, finalAmount, "USD");
+    }
+
+    public Order payOrderWithCard(String orderId, CardData cardData) throws Exception {
+        Order order = orderService.getOrder(orderId);
+        PaymentIntent paymentIntent = paymentService.payWithCard(order.getPaymentIntentId(), cardData);
+
+        if (!"succeeded".equals(paymentIntent.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Payment failed with status: " + paymentIntent.getStatus());
+        }
+
+        return orderService.completeOrder(orderId);
     }
 
     public record CheckoutResult(String clientSecret, String orderId, String product, Long amount, String currency) {}

@@ -1,14 +1,12 @@
 package com.example.stripedemo.controller.api;
 
 import com.example.stripedemo.application.CheckoutApplicationService;
-import com.example.stripedemo.controller.api.dto.CheckoutRequest;
-import com.example.stripedemo.controller.api.dto.CheckoutResponse;
-import com.example.stripedemo.controller.api.dto.ConfigResponse;
-import com.example.stripedemo.controller.api.dto.OrderStatusResponse;
-import com.example.stripedemo.controller.api.dto.ProductResponse;
+import com.example.stripedemo.controller.api.dto.*;
 import com.example.stripedemo.domain.order.OrderService;
 import com.example.stripedemo.model.Order;
 import com.example.stripedemo.service.ProductCatalogService;
+import com.example.stripedemo.service.RequestEncryptionService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,17 +21,23 @@ public class PaymentApiController {
     private final ProductCatalogService productCatalogService;
     private final CheckoutApplicationService checkoutApplicationService;
     private final OrderService orderService;
+    private final RequestEncryptionService requestEncryptionService;
+    private final ObjectMapper objectMapper;
     private final String stripePublishableKey;
 
     public PaymentApiController(
             ProductCatalogService productCatalogService,
             CheckoutApplicationService checkoutApplicationService,
             OrderService orderService,
+            RequestEncryptionService requestEncryptionService,
+            ObjectMapper objectMapper,
             @Value("${stripe.publishable-key}") String stripePublishableKey
     ) {
         this.productCatalogService = productCatalogService;
         this.checkoutApplicationService = checkoutApplicationService;
         this.orderService = orderService;
+        this.requestEncryptionService = requestEncryptionService;
+        this.objectMapper = objectMapper;
         this.stripePublishableKey = stripePublishableKey;
     }
 
@@ -51,6 +55,11 @@ public class PaymentApiController {
         return new ConfigResponse(stripePublishableKey);
     }
 
+    @GetMapping("/security/public-key")
+    public PublicKeyResponse publicKey() {
+        return new PublicKeyResponse("RSA-OAEP-256", requestEncryptionService.getPublicKeyBase64());
+    }
+
     @PostMapping("/checkout")
     public CheckoutResponse checkout(@RequestBody CheckoutRequest request) throws Exception {
         CheckoutApplicationService.CheckoutResult result = checkoutApplicationService.createCheckout(request.product());
@@ -61,6 +70,14 @@ public class PaymentApiController {
                 result.amount(),
                 result.currency()
         );
+    }
+
+    @PostMapping("/orders/{orderId}/pay-encrypted")
+    public OrderStatusResponse payEncrypted(@PathVariable String orderId, @RequestBody EncryptedCardRequest request) throws Exception {
+        String decrypted = requestEncryptionService.decryptBase64(request.encryptedData());
+        CardData cardData = objectMapper.readValue(decrypted, CardData.class);
+        Order order = checkoutApplicationService.payOrderWithCard(orderId, cardData);
+        return new OrderStatusResponse(order.getStatus());
     }
 
     @PostMapping("/orders/{orderId}/complete")

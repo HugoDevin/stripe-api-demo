@@ -26,7 +26,34 @@
 
         <div v-else-if="activeStep === 1">
           <p>商品：{{ checkout.product }} / 金額：${{ (checkout.amount / 100).toFixed(2) }}</p>
-          <div id="card-element"></div>
+          <el-form label-width="100px" class="card-form">
+            <el-form-item label="卡號">
+              <el-input v-model="card.number" maxlength="19" placeholder="4242424242424242" />
+            </el-form-item>
+            <el-row :gutter="12">
+              <el-col :span="8">
+                <el-form-item label="月">
+                  <el-input-number v-model="card.expMonth" :min="1" :max="12" :controls="false" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="年">
+                  <el-input-number v-model="card.expYear" :min="2024" :max="2099" :controls="false" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="CVC">
+                  <el-input v-model="card.cvc" maxlength="4" show-password placeholder="123" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </el-form>
+          <el-alert
+            title="卡片資料會先在前端以 RSA-OAEP 加密，再送往後端解密處理"
+            type="info"
+            :closable="false"
+            class="tip"
+          />
           <el-button type="success" :loading="paying" @click="pay">確認付款</el-button>
         </div>
 
@@ -51,7 +78,7 @@ import { useCheckoutStore } from '../store/checkout'
 
 const checkoutStore = useCheckoutStore()
 
-const { products, orders, selectedProduct, activeStep, paying, checkout } = storeToRefs(checkoutStore)
+const { products, orders, selectedProduct, activeStep, paying, checkout, card } = storeToRefs(checkoutStore)
 const { createCheckout, pay, initialize } = checkoutStore
 
 onMounted(async () => {
@@ -67,10 +94,10 @@ onMounted(async () => {
 .section {
   margin-top: 24px;
 }
-#card-element {
-  padding: 10px;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
+.card-form {
+  margin: 16px 0;
+}
+.tip {
   margin-bottom: 16px;
 }
 </style>
