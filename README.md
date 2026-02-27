@@ -3,9 +3,7 @@
 ## Run with Docker Compose
 ```bash
 cp .env.example .env
-docker compose up --build
-# If you hit docker-credential-desktop.exe not found, use:
-./scripts/docker-compose-safe.sh
+./scripts/docker-engine-up.sh
 ```
 Services:
 - App: http://localhost:8080
@@ -55,7 +53,6 @@ Reservation will be released and order canceled.
 - Webhook signature failure: verify `STRIPE_WEBHOOK_SECRET` and raw payload forwarding.
 - 409 insufficient stock: reservation atomic update failed.
 - Idempotent redelivery: see `processed_events` table; duplicate events are ignored per consumer.
-- `error getting credentials - err: exec: "docker-credential-desktop.exe": executable file not found in $PATH`: Docker config references Docker Desktop helper in a non-Desktop environment.
-  - Quick workaround: `./scripts/docker-compose-safe.sh`
-  - Permanent fix: remove Desktop credential helper entries from `~/.docker/config.json` (`credsStore` / `credHelpers`).
-- `/usr/bin/env: ‘bash\r’: No such file or directory`: script has Windows CRLF line endings. Run `sed -i "s/\r$//" scripts/docker-compose-safe.sh` once, and keep `.gitattributes` (`*.sh eol=lf`) in repo.
+- If Docker daemon is unreachable, verify Docker Engine is running and socket exists: `ls -l /var/run/docker.sock`.
+- Use non-Desktop startup command: `./scripts/docker-engine-up.sh` (forces `DOCKER_HOST=unix:///var/run/docker.sock`).
+- `/usr/bin/env: ‘bash\r’: No such file or directory`: run `sed -i "s/\r$//" scripts/*.sh` once; `.gitattributes` already enforces LF for `.sh`.
