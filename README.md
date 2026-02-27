@@ -58,3 +58,4 @@ Reservation will be released and order canceled.
 - `error getting credentials - err: exec: "docker-credential-desktop.exe": executable file not found in $PATH`: Docker config references Docker Desktop helper in a non-Desktop environment.
   - Quick workaround: `./scripts/docker-compose-safe.sh`
   - Permanent fix: remove Desktop credential helper entries from `~/.docker/config.json` (`credsStore` / `credHelpers`).
+- `/usr/bin/env: ‘bash\r’: No such file or directory`: script has Windows CRLF line endings. Run `sed -i "s/\r$//" scripts/docker-compose-safe.sh` once, and keep `.gitattributes` (`*.sh eol=lf`) in repo.
