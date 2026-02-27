@@ -9,7 +9,7 @@
     <select id="product" name="product">
         <option th:each="entry : ${products}"
                 th:value="${entry.key}"
-                th:text="${entry.key + ' - $' + (entry.value / 100.0)}">
+                th:text="${entry.key + ' - ' + paymentCurrency + ' ' + #numbers.formatDecimal(entry.value / 100.0, 1, 2)}">
         </option>
     </select>
     <button type="submit">購買</button>
