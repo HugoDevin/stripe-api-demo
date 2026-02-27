@@ -24,6 +24,7 @@ public class PaymentApiController {
     private final RequestEncryptionService requestEncryptionService;
     private final ObjectMapper objectMapper;
     private final String stripePublishableKey;
+    private final String paymentCurrency;
 
     public PaymentApiController(
             ProductCatalogService productCatalogService,
@@ -31,7 +32,8 @@ public class PaymentApiController {
             OrderService orderService,
             RequestEncryptionService requestEncryptionService,
             ObjectMapper objectMapper,
-            @Value("${stripe.publishable-key}") String stripePublishableKey
+            @Value("${stripe.publishable-key}") String stripePublishableKey,
+            @Value("${app.payment.currency:usd}") String paymentCurrency
     ) {
         this.productCatalogService = productCatalogService;
         this.checkoutApplicationService = checkoutApplicationService;
@@ -39,6 +41,7 @@ public class PaymentApiController {
         this.requestEncryptionService = requestEncryptionService;
         this.objectMapper = objectMapper;
         this.stripePublishableKey = stripePublishableKey;
+        this.paymentCurrency = paymentCurrency.toUpperCase();
     }
 
     @GetMapping("/products")
@@ -52,7 +55,7 @@ public class PaymentApiController {
 
     @GetMapping("/config")
     public ConfigResponse config() {
-        return new ConfigResponse(stripePublishableKey);
+        return new ConfigResponse(stripePublishableKey, paymentCurrency);
     }
 
     @GetMapping("/security/public-key")

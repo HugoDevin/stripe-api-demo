@@ -7,6 +7,8 @@ stripe:
 
 app:
   frontend-origin: ${FRONTEND_ORIGIN:http://localhost:5173}
+  payment:
+    currency: ${APP_PAYMENT_CURRENCY:usd}
 
 spring:
   datasource:
