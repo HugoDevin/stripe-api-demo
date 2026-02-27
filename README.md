@@ -1,107 +1,73 @@
-# Enterprise E-Commerce Backend (Java 21 + Spring Boot 3)
+# Stripe Spring Boot + Vue3 Demo
 
-Modular Monolith + Event-Driven + Outbox + RabbitMQ + Stripe PaymentIntent.
+此專案支援 **Vue3 與 Thymeleaf 共存**，並已加上模組化分層，避免 API Controller 與頁面 Controller 混在一起。
 
-## Modules
-- `catalog`, `inventory`, `order`, `payment`, `invoicing`, `fulfillment`, `notification`, `accounting`, `reporting`, `messaging`, `common`
+## 模組化分層
+- `controller.api`：對外 REST API（`/api/**`）
+- `controller.web`：Thymeleaf 頁面路由（`/web/**`）
+- `application`：用例流程協調（`CheckoutApplicationService`）
+- `domain.order`：訂單領域邏輯（`OrderService`）
+- `service` / `repository`：外部整合與資料來源（Stripe、商品目錄等）
 
-## Quick Start (Docker Compose)
-1. Copy env:
-   ```bash
-   cp .env.example .env
-   ```
-2. Start:
-   ```bash
-   docker compose up --build
-   ```
-3. Services:
-   - App: `http://localhost:8080`
-   - RabbitMQ UI: `http://localhost:15672` (guest/guest)
-   - PostgreSQL: `localhost:5432`
-   - Redis: `localhost:6379`
+## 資料庫與快取
+- 正式環境預設使用 **PostgreSQL**（`spring.datasource.*`）。
+- `dev` profile 使用 **H2（PostgreSQL 模式）** 方便本機開發。
+- `src/main/resources/data-dev.sql` 已提供 H2 測試資料（商品 + 使用者訂購紀錄）。
+- 商品購物清單 API 透過 Spring Cache 快取，避免每次都重新查詢 DB。
+- `dev` profile 會啟用 Mock 付款服務，模擬付款成功，方便本機驗證付款流程（不實際呼叫 Stripe）。
+- 付款完成前會檢查 Stripe 回傳的金額與幣別是否與訂單一致，避免幣別/金額錯置。
 
-## Profiles
-- `prod`: real Stripe gateway + webhook endpoint
-- `staging`: real Stripe gateway + webhook endpoint
-- `dev-offline`: fake payment gateway + internal simulate endpoints (no external Stripe dependency)
+## 路由規劃
+- `/`：導向 `/web`
+- `/web/**`：Thymeleaf 頁面
+- `/api/**`：JSON API（供 Vue3 使用）
+- `/admin`：商品管理後台（需登入）
 
-All timestamps are UTC (`OffsetDateTime.now()`).
+## Backend 啟動
+```bash
+mvn spring-boot:run
+```
 
-## Core APIs
-### Catalog / Inventory
-- `POST /api/products`
+必要環境變數：
+- `STRIPE_SECRET_KEY`
+- `STRIPE_PUBLISHABLE_KEY`
+
+可選環境變數：
+- `SPRING_PROFILES_ACTIVE`（設為 `dev` 時改用 H2）
+- `FRONTEND_ORIGIN`（預設 `http://localhost:5173`）
+- `APP_PAYMENT_CURRENCY`（預設 `usd`；可設 `twd` 等幣別，前後端會同步顯示與驗證）
+- `SPRING_CACHE_TYPE`（`redis` / `simple` / `none`）
+- `APP_ADMIN_USERNAME`（後台帳號，預設 `admin`）
+- `APP_ADMIN_PASSWORD`（後台密碼，預設 `admin123`）
+
+## 後台功能
+- 支援商品價格修改
+- 支援商品上架 / 下架
+- 下架商品不會出現在前台購買清單，也不能被建立結帳
+
+## Frontend 技術堆疊結構
+- `src/api/`：Axios 請求封裝
+- `src/types/`：TypeScript 介面/型別定義
+- `src/store/`：Pinia（State / Actions）
+- `src/views/`：SPA 各個頁面
+- `src/components/`：Element Plus 二次封裝組件
+- `src/router/`：前端路由設定
+
+## Frontend（Vue3）啟動
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+若後端非預設位置，可在前端使用：
+```bash
+VITE_API_BASE_URL=http://localhost:8080/api npm run dev
+```
+
+## API 清單
+- `GET /api/config`
 - `GET /api/products`
-- `GET /api/products/{sku}`
-- `GET /api/inventory/{sku}`
-- `POST /api/inventory/{sku}/adjust`
-
-### Orders
-- `POST /api/orders`
-- `GET /api/orders/{id}`
-
-### Payments
-- `POST /api/payments/create?orderId=...`
-- `GET /api/payments/{id}`
-
-### Stripe webhook (staging/prod)
-- `POST /api/stripe/webhook`
-
-### Reporting
-- `GET /api/reporting/sales-daily?from=YYYY-MM-DD&to=YYYY-MM-DD`
-
-## dev-offline simulate payment
-Only available in `dev-offline` profile.
-
-Headers:
-- `X-DEV-TOKEN: <DEV_INTERNAL_TOKEN>`
-
-Endpoints:
-- `POST /internal/payments/{orderId}/simulate-success`
-- `POST /internal/payments/{orderId}/simulate-fail`
-
-## Example Flow (dev-offline)
-1. Create product:
-   ```bash
-   curl -X POST localhost:8080/api/products -H 'Content-Type: application/json' -d '{"sku":"BOOK-001","name":"Book","price":75000,"currency":"TWD"}'
-   ```
-2. Add inventory:
-   ```bash
-   curl -X POST localhost:8080/api/inventory/BOOK-001/adjust -H 'Content-Type: application/json' -d '{"delta":10}'
-   ```
-3. Create order:
-   ```bash
-   curl -X POST localhost:8080/api/orders -H 'Content-Type: application/json' -d '{"customerEmail":"user@example.com","items":[{"sku":"BOOK-001","qty":1}]}'
-   ```
-4. Create payment:
-   ```bash
-   curl -X POST 'localhost:8080/api/payments/create?orderId=<ORDER_ID>'
-   ```
-5. Simulate success:
-   ```bash
-   curl -X POST localhost:8080/internal/payments/<ORDER_ID>/simulate-success -H 'X-DEV-TOKEN: dev-token'
-   ```
-6. Verify projections:
-   - `receipts`
-   - `fulfillments`
-   - `notifications`
-   - `accounting_entries`
-   - `sales_daily_fact`
-
-## Stripe test mode (staging/prod)
-1. Backend calls `POST /api/payments/create?orderId=...` to get `clientSecret`.
-2. Frontend uses Stripe.js `confirmCardPayment(clientSecret, ...)`.
-3. Stripe sends webhook to `/api/stripe/webhook`.
-4. Backend verifies signature + idempotency and writes outbox event.
-
-## Architecture Notes
-- Amount is always server-side calculated from product price.
-- Inventory reserve is atomic (`available_qty >= qty`) so no negative stock.
-- Payment succeeded/failed side effects are event-driven through RabbitMQ consumers.
-- Outbox guarantees DB state + event publish consistency.
-- Consumers are idempotent via `processed_events(event_id, consumer_name)`.
-
-## Common Troubleshooting
-- **Webhook signature failed**: check `STRIPE_WEBHOOK_SECRET` and raw request body passthrough.
-- **Stock 409**: expected when reserve fails due insufficient stock.
-- **Duplicate event**: verify `processed_events` and `webhook_events.provider_event_id` uniqueness.
-- **No message consumed**: verify RabbitMQ exchange `domain.events` and queue bindings.
+- `POST /api/checkout`（可帶 `customerId` 紀錄使用者）
+- `POST /api/orders/{orderId}/complete`
+- `GET /api/orders`

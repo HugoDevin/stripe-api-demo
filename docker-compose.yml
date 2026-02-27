@@ -1,28 +1,40 @@
+version: "3.8"
+
 services:
-  app:
+  stripe-demo:
     build: .
-    ports: ["8080:8080"]
-    env_file: .env
-    depends_on: [postgres, redis, rabbitmq]
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "8080:8080"
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev-offline}
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      REDIS_HOST: redis
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_USERNAME: guest
-      RABBITMQ_PASSWORD: guest
+      - STRIPE_SECRET_KEY=sk_test_yourSecretKeyHere
+      - STRIPE_PUBLISHABLE_KEY=pk_test_yourPublishableKeyHere
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/stripe_demo
+      - SPRING_DATASOURCE_USERNAME=stripe_demo
+      - SPRING_DATASOURCE_PASSWORD=stripe_demo
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    restart: unless-stopped
+
   postgres:
     image: postgres:16-alpine
+    ports:
+      - "5432:5432"
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    ports: ["5432:5432"]
+      - POSTGRES_DB=stripe_demo
+      - POSTGRES_USER=stripe_demo
+      - POSTGRES_PASSWORD=stripe_demo
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
-    ports: ["6379:6379"]
-  rabbitmq:
-    image: rabbitmq:3-management
-    ports: ["5672:5672", "15672:15672"]
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
