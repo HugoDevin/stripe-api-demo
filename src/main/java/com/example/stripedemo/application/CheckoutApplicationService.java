@@ -27,7 +27,7 @@ public class CheckoutApplicationService {
         this.orderService = orderService;
     }
 
-    public CheckoutResult createCheckout(String product) throws Exception {
+    public CheckoutResult createCheckout(String product, String customerId) throws Exception {
         Long productPrice = productCatalogService.getProductPrice(product);
         if (productPrice == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown product: " + product);
@@ -35,7 +35,8 @@ public class CheckoutApplicationService {
 
         long finalAmount = productPrice;
         PaymentIntent intent = paymentService.createPayment(finalAmount, "usd", product);
-        Order order = orderService.createPendingOrder(product, finalAmount, "USD", intent.getId());
+        String normalizedCustomerId = (customerId == null || customerId.isBlank()) ? "guest" : customerId;
+        Order order = orderService.createPendingOrder(product, finalAmount, "USD", intent.getId(), normalizedCustomerId);
 
         return new CheckoutResult(intent.getClientSecret(), order.getId(), product, finalAmount, "USD");
     }

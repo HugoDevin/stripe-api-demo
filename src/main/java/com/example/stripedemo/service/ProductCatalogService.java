@@ -6,8 +6,11 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductCatalogService {
@@ -20,23 +23,30 @@ public class ProductCatalogService {
 
     @Cacheable(value = "product-catalog", key = "'all-products'")
     public Map<String, CatalogProduct> getAllProductsForAdmin() {
-        return productCatalogRepository.findAllProducts();
+        return productCatalogRepository.findAllByOrderByNameAsc().stream()
+                .collect(Collectors.toMap(
+                        CatalogProduct::getName,
+                        Function.identity(),
+                        (left, right) -> right,
+                        LinkedHashMap::new
+                ));
     }
 
+    @Cacheable(value = "storefront-products", key = "'active-products'")
     public Map<String, Long> getAllProducts() {
         return getAllProductsForAdmin().values().stream()
                 .filter(CatalogProduct::isActive)
-                .collect(java.util.stream.Collectors.toMap(
+                .collect(Collectors.toMap(
                         CatalogProduct::getName,
                         CatalogProduct::getPrice,
                         (left, right) -> right,
-                        java.util.LinkedHashMap::new
+                        LinkedHashMap::new
                 ));
     }
 
     @Cacheable(value = "product-price", key = "#productName")
     public Long getProductPrice(String productName) {
-        CatalogProduct product = productCatalogRepository.findByProductName(productName);
+        CatalogProduct product = productCatalogRepository.findById(productName).orElse(null);
         if (product == null || !product.isActive()) {
             return null;
         }
@@ -47,13 +57,19 @@ public class ProductCatalogService {
         return getAllProductsForAdmin().values().stream().toList();
     }
 
-    @CacheEvict(value = {"product-catalog", "product-price"}, allEntries = true)
+    @CacheEvict(value = {"product-catalog", "storefront-products", "product-price"}, allEntries = true)
     public void updatePrice(String productName, long price) {
-        productCatalogRepository.updatePrice(productName, price);
+        CatalogProduct product = productCatalogRepository.findById(productName)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown product: " + productName));
+        product.setPrice(price);
+        productCatalogRepository.save(product);
     }
 
-    @CacheEvict(value = {"product-catalog", "product-price"}, allEntries = true)
+    @CacheEvict(value = {"product-catalog", "storefront-products", "product-price"}, allEntries = true)
     public void updateActiveStatus(String productName, boolean active) {
-        productCatalogRepository.updateActiveStatus(productName, active);
+        CatalogProduct product = productCatalogRepository.findById(productName)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown product: " + productName));
+        product.setActive(active);
+        productCatalogRepository.save(product);
     }
 }

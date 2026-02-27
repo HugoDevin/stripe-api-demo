@@ -62,7 +62,7 @@ public class PaymentApiController {
 
     @PostMapping("/checkout")
     public CheckoutResponse checkout(@RequestBody CheckoutRequest request) throws Exception {
-        CheckoutApplicationService.CheckoutResult result = checkoutApplicationService.createCheckout(request.product());
+        CheckoutApplicationService.CheckoutResult result = checkoutApplicationService.createCheckout(request.product(), request.customerId());
         return new CheckoutResponse(
                 result.clientSecret(),
                 result.orderId(),
