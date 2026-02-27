@@ -1,6 +1,7 @@
 package com.example.stripedemo.service;
 
 import com.example.stripedemo.controller.api.dto.CardData;
+<<<<<<<< HEAD:src/main/java/com/example/stripedemo/service/StripePaymentService.java
 import com.stripe.Stripe;
 import com.stripe.model.PaymentIntent;
 import com.stripe.model.PaymentMethod;
@@ -65,5 +66,15 @@ public class StripePaymentService implements PaymentService {
                 confirmedPaymentIntent.getAmount(),
                 confirmedPaymentIntent.getCurrency()
         );
+========
+
+public interface PaymentService {
+
+    PaymentSession createPayment(Long amount, String currency, String description) throws Exception;
+
+    PaymentSession payWithCard(String paymentIntentId, CardData cardData) throws Exception;
+
+    record PaymentSession(String id, String clientSecret, String status, Long amount, String currency) {
+>>>>>>>> 969109c (Update Thymeleaf pages to show explicit currency information):src/main/java/com/example/stripedemo/service/PaymentService.java
     }
 }
