@@ -1,73 +1,55 @@
-# Stripe Spring Boot + Vue3 Demo
+# Stripe Event-Driven Ecommerce Backend (Java 21 / Spring Boot 3)
 
-此專案支援 **Vue3 與 Thymeleaf 共存**，並已加上模組化分層，避免 API Controller 與頁面 Controller 混在一起。
-
-## 模組化分層
-- `controller.api`：對外 REST API（`/api/**`）
-- `controller.web`：Thymeleaf 頁面路由（`/web/**`）
-- `application`：用例流程協調（`CheckoutApplicationService`）
-- `domain.order`：訂單領域邏輯（`OrderService`）
-- `service` / `repository`：外部整合與資料來源（Stripe、商品目錄等）
-
-## 資料庫與快取
-- 正式環境預設使用 **PostgreSQL**（`spring.datasource.*`）。
-- `dev` profile 使用 **H2（PostgreSQL 模式）** 方便本機開發。
-- `src/main/resources/data-dev.sql` 已提供 H2 測試資料（商品 + 使用者訂購紀錄）。
-- 商品購物清單 API 透過 Spring Cache 快取，避免每次都重新查詢 DB。
-- `dev` profile 會啟用 Mock 付款服務，模擬付款成功，方便本機驗證付款流程（不實際呼叫 Stripe）。
-- 付款完成前會檢查 Stripe 回傳的金額與幣別是否與訂單一致，避免幣別/金額錯置。
-
-## 路由規劃
-- `/`：導向 `/web`
-- `/web/**`：Thymeleaf 頁面
-- `/api/**`：JSON API（供 Vue3 使用）
-- `/admin`：商品管理後台（需登入）
-
-## Backend 啟動
+## Run with Docker Compose
 ```bash
-mvn spring-boot:run
+cp .env.example .env
+docker compose up --build
 ```
+Services:
+- App: http://localhost:8080
+- RabbitMQ UI: http://localhost:15672 (guest/guest)
+- PostgreSQL: localhost:5432
 
-必要環境變數：
-- `STRIPE_SECRET_KEY`
-- `STRIPE_PUBLISHABLE_KEY`
+All timestamps are UTC (`hibernate.jdbc.time_zone=UTC`).
 
-可選環境變數：
-- `SPRING_PROFILES_ACTIVE`（設為 `dev` 時改用 H2）
-- `FRONTEND_ORIGIN`（預設 `http://localhost:5173`）
-- `APP_PAYMENT_CURRENCY`（預設 `usd`；可設 `twd` 等幣別，前後端會同步顯示與驗證）
-- `SPRING_CACHE_TYPE`（`redis` / `simple` / `none`）
-- `APP_ADMIN_USERNAME`（後台帳號，預設 `admin`）
-- `APP_ADMIN_PASSWORD`（後台密碼，預設 `admin123`）
+## dev-offline profile
+- `SPRING_PROFILES_ACTIVE=dev-offline`
+- payment gateway = `FakePaymentGateway`
+- use internal simulate endpoints with `X-DEV-TOKEN: $DEV_INTERNAL_TOKEN`
 
-## 後台功能
-- 支援商品價格修改
-- 支援商品上架 / 下架
-- 下架商品不會出現在前台購買清單，也不能被建立結帳
-
-## Frontend 技術堆疊結構
-- `src/api/`：Axios 請求封裝
-- `src/types/`：TypeScript 介面/型別定義
-- `src/store/`：Pinia（State / Actions）
-- `src/views/`：SPA 各個頁面
-- `src/components/`：Element Plus 二次封裝組件
-- `src/router/`：前端路由設定
-
-## Frontend（Vue3）啟動
+### Demo flow (offline)
 ```bash
-cd frontend
-npm install
-npm run dev
+curl -X POST localhost:8080/api/products -H 'Content-Type: application/json' -d '{"sku":"SKU-1","name":"Book","price":100,"currency":"USD","active":true}'
+curl -X POST 'localhost:8080/api/inventory/SKU-1/adjust?qty=10'
+curl -X POST localhost:8080/api/orders -H 'Content-Type: application/json' -d '{"customerEmail":"a@demo.com","items":[{"sku":"SKU-1","qty":1}]}'
+curl -X POST 'localhost:8080/api/payments/create?orderId=<ORDER_ID>'
+curl -X POST localhost:8080/internal/payments/<ORDER_ID>/simulate-success -H 'X-DEV-TOKEN: dev-token'
 ```
+Check generated tables: `receipts`, `fulfillments`, `notifications`, `accounting_entries`, `sales_daily_fact`.
 
-若後端非預設位置，可在前端使用：
+For failed flow:
 ```bash
-VITE_API_BASE_URL=http://localhost:8080/api npm run dev
+curl -X POST localhost:8080/internal/payments/<ORDER_ID>/simulate-fail -H 'X-DEV-TOKEN: dev-token'
 ```
+Reservation will be released and order canceled.
 
-## API 清單
-- `GET /api/config`
-- `GET /api/products`
-- `POST /api/checkout`（可帶 `customerId` 紀錄使用者）
-- `POST /api/orders/{orderId}/complete`
-- `GET /api/orders`
+## staging/prod Stripe flow
+1. `POST /api/orders` create order.
+2. `POST /api/payments/create?orderId=...` get `clientSecret`.
+3. Frontend confirms PaymentIntent with Stripe.js.
+4. Stripe sends webhook to `POST /api/stripe/webhook`.
+5. Server verifies signature + idempotency (`webhook_events.provider_event_id` unique), then writes outbox event.
+
+## API list
+- `POST /api/products`, `GET /api/products`, `GET /api/products/{sku}`
+- `GET /api/inventory/{sku}`, `POST /api/inventory/{sku}/adjust?qty=`
+- `POST /api/orders`, `GET /api/orders/{id}`
+- `POST /api/payments/create?orderId=`, `GET /api/payments/{id}`
+- `POST /api/stripe/webhook` (staging/prod only)
+- `GET /api/reporting/sales-daily?from=YYYY-MM-DD&to=YYYY-MM-DD`
+- `POST /internal/payments/{orderId}/simulate-success|simulate-fail` (dev-offline only)
+
+## Troubleshooting
+- Webhook signature failure: verify `STRIPE_WEBHOOK_SECRET` and raw payload forwarding.
+- 409 insufficient stock: reservation atomic update failed.
+- Idempotent redelivery: see `processed_events` table; duplicate events are ignored per consumer.
