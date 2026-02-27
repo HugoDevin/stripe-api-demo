@@ -1,10 +1,26 @@
 package com.example.stripedemo.model;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "catalog_products")
 public class CatalogProduct {
 
-    private final String name;
-    private final long price;
-    private final boolean active;
+    @Id
+    @Column(name = "name", nullable = false, length = 100)
+    private String name;
+
+    @Column(name = "price", nullable = false)
+    private long price;
+
+    @Column(name = "active", nullable = false)
+    private boolean active;
+
+    protected CatalogProduct() {
+    }
 
     public CatalogProduct(String name, long price, boolean active) {
         this.name = name;
@@ -20,15 +36,15 @@ public class CatalogProduct {
         return price;
     }
 
+    public void setPrice(long price) {
+        this.price = price;
+    }
+
     public boolean isActive() {
         return active;
     }
 
-    public CatalogProduct withPrice(long newPrice) {
-        return new CatalogProduct(name, newPrice, active);
-    }
-
-    public CatalogProduct withActive(boolean newStatus) {
-        return new CatalogProduct(name, price, newStatus);
+    public void setActive(boolean active) {
+        this.active = active;
     }
 }

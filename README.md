@@ -9,6 +9,12 @@
 - `domain.order`：訂單領域邏輯（`OrderService`）
 - `service` / `repository`：外部整合與資料來源（Stripe、商品目錄等）
 
+## 資料庫與快取
+- 正式環境預設使用 **PostgreSQL**（`spring.datasource.*`）。
+- `dev` profile 使用 **H2（PostgreSQL 模式）** 方便本機開發。
+- `src/main/resources/data-dev.sql` 已提供 H2 測試資料（商品 + 使用者訂購紀錄）。
+- 商品購物清單 API 透過 Spring Cache 快取，避免每次都重新查詢 DB。
+
 ## 路由規劃
 - `/`：導向 `/web`
 - `/web/**`：Thymeleaf 頁面
@@ -25,6 +31,7 @@ mvn spring-boot:run
 - `STRIPE_PUBLISHABLE_KEY`
 
 可選環境變數：
+- `SPRING_PROFILES_ACTIVE`（設為 `dev` 時改用 H2）
 - `FRONTEND_ORIGIN`（預設 `http://localhost:5173`）
 - `SPRING_CACHE_TYPE`（`redis` / `simple` / `none`）
 - `APP_ADMIN_USERNAME`（後台帳號，預設 `admin`）
@@ -58,6 +65,6 @@ VITE_API_BASE_URL=http://localhost:8080/api npm run dev
 ## API 清單
 - `GET /api/config`
 - `GET /api/products`
-- `POST /api/checkout`
+- `POST /api/checkout`（可帶 `customerId` 紀錄使用者）
 - `POST /api/orders/{orderId}/complete`
 - `GET /api/orders`
