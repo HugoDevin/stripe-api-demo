@@ -44,6 +44,7 @@ export const useCheckoutStore = defineStore('checkout', () => {
   const paying = ref(false)
   const checkout = ref<CheckoutResponse>(EMPTY_CHECKOUT)
   const card = ref<CardPayload>({ ...EMPTY_CARD_PAYLOAD })
+  const defaultCurrency = ref('USD')
 
   const loadProducts = async () => {
     products.value = await paymentApi.getProducts()
@@ -51,6 +52,11 @@ export const useCheckoutStore = defineStore('checkout', () => {
 
   const loadOrders = async () => {
     orders.value = await paymentApi.getOrders()
+  }
+
+  const loadConfig = async () => {
+    const config = await paymentApi.getConfig()
+    defaultCurrency.value = config.currency
   }
 
   const createCheckout = async () => {
@@ -88,7 +94,7 @@ export const useCheckoutStore = defineStore('checkout', () => {
   }
 
   const initialize = async () => {
-    await Promise.all([loadProducts(), loadOrders()])
+    await Promise.all([loadConfig(), loadProducts(), loadOrders()])
   }
 
   return {
@@ -99,6 +105,7 @@ export const useCheckoutStore = defineStore('checkout', () => {
     paying,
     checkout,
     card,
+    defaultCurrency,
     createCheckout,
     pay,
     initialize

@@ -7,8 +7,19 @@ stripe:
 
 app:
   frontend-origin: ${FRONTEND_ORIGIN:http://localhost:5173}
+  payment:
+    currency: ${APP_PAYMENT_CURRENCY:usd}
 
 spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/stripe_demo}
+    username: ${SPRING_DATASOURCE_USERNAME:stripe_demo}
+    password: ${SPRING_DATASOURCE_PASSWORD:stripe_demo}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
   data:
     redis:
       host: ${REDIS_HOST:localhost}

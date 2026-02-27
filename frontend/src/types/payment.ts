@@ -15,11 +15,13 @@ export interface Order {
   id: string
   product: string
   amount: number
+  currency: string
   status: string
 }
 
 export interface AppConfig {
   publishableKey: string
+  currency: string
 }
 
 export interface PublicKeyResponse {
