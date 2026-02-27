@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><title>Shop</title></head>
+<body>
+<h1>Products</h1>
+<form method="post" action="/web/orders">
+    <label>Email: <input type="email" name="customerEmail" required></label><br>
+    <label>Product:
+        <select name="sku">
+            <option th:each="p : ${products}" th:value="${p.sku}"
+                    th:text="${p.name + ' (' + p.currency + ' ' + #numbers.formatDecimal(p.price / 100.0, 1, 2) + ')'}"></option>
+        </select>
+    </label><br>
+    <label>Qty: <input type="number" min="1" name="qty" value="1"></label><br>
+    <button type="submit">Create Order</button>
+</form>
+<p><a href="/web/orders">View Orders</a></p>
+</body>
+</html>

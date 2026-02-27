@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><title>Order</title></head>
+<body>
+<h1>Order Detail</h1>
+<p th:if="${message}" th:text="${message}"></p>
+<p>ID: <span th:text="${order.id}"></span></p>
+<p>Status: <span th:text="${order.status}"></span></p>
+<p>Total: <span th:text="${order.currency + ' ' + #numbers.formatDecimal(order.totalAmount / 100.0, 1, 2)}"></span></p>
+
+<div th:if="${payment == null and order.status.name() == 'PAYMENT_PENDING'}">
+    <form method="post" action="/web/payments/create">
+        <input type="hidden" name="orderId" th:value="${order.id}">
+        <button type="submit">Create Payment Intent</button>
+    </form>
+</div>
+
+<div th:if="${payment != null}">
+    <p>Payment: <span th:text="${payment.status}"></span> / <span th:text="${payment.provider}"></span></p>
+    <p><a th:href="@{'/web/payments/' + ${payment.id}}">Open Payment Page</a></p>
+</div>
+
+<div th:if="${devOffline and payment != null and order.status.name() == 'PAYMENT_PENDING'}">
+    <form th:action="@{'/web/payments/' + ${order.id} + '/simulate-success'}" method="post">
+        <button type="submit">Simulate Success</button>
+    </form>
+    <form th:action="@{'/web/payments/' + ${order.id} + '/simulate-fail'}" method="post">
+        <button type="submit">Simulate Fail</button>
+    </form>
+</div>
+
+<p><a href="/web/orders">Back Orders</a></p>
+</body>
+</html>

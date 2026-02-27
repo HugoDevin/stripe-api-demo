@@ -1,4 +1,0 @@
-spring:
-  cache:
-    # 本地開發環境沒有 Redis 時，改用 in-memory cache
-    type: simple

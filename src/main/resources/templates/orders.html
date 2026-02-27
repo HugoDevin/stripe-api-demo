@@ -1,17 +1,18 @@
-<!DOCTYPE html>
-<html>
-<head><title>Orders</title></head>
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><title>Orders</title></head>
 <body>
-<h1>訂單列表</h1>
+<h1>Orders</h1>
 <table border="1">
-<tr><th>ID</th><th>商品</th><th>金額</th><th>狀態</th></tr>
-<tr th:each="order : ${orders}">
-    <td th:text="${order.id}"></td>
-    <td th:text="${order.product}"></td>
-    <td th:text="${order.amount}"></td>
-    <td th:text="${order.status}"></td>
-</tr>
+    <tr><th>ID</th><th>Email</th><th>Status</th><th>Total</th><th>Action</th></tr>
+    <tr th:each="o : ${orders}">
+        <td th:text="${o.id}"></td>
+        <td th:text="${o.customerEmail}"></td>
+        <td th:text="${o.status}"></td>
+        <td th:text="${o.currency + ' ' + #numbers.formatDecimal(o.totalAmount / 100.0, 1, 2)}"></td>
+        <td><a th:href="@{'/web/orders/' + ${o.id}}">Detail</a></td>
+    </tr>
 </table>
-<a href="/web">回商品頁</a>
+<p><a href="/web">Back Shop</a></p>
 </body>
 </html>

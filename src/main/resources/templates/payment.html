@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><title>Payment</title>
+</head>
+<body>
+<h1>Payment Intent Created</h1>
+<p>Order: <span th:text="${order.id}"></span></p>
+<p>Total: <span th:text="${order.currency + ' ' + #numbers.formatDecimal(order.totalAmount / 100.0, 1, 2)}"></span></p>
+<p>Payment ID: <span th:text="${payment.id}"></span></p>
+<p>Provider: <span th:text="${payment.provider}"></span></p>
+<p>Status: <span th:text="${payment.status}"></span></p>
+
+<div th:if="${devOffline}">
+    <p>dev-offline：請回訂單頁使用 simulate success/fail 觸發後段事件流程。</p>
+</div>
+<div th:if="${!devOffline}">
+    <p>請使用 Stripe.js 前端（或你們的前台）搭配下列 clientSecret 進行 confirm。</p>
+    <pre th:text="${payment.clientSecret}"></pre>
+</div>
+
+<p><a th:href="@{'/web/orders/' + ${order.id}}">Back</a></p>
+</body>
+</html>
