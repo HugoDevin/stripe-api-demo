@@ -1,20 +1,37 @@
-server:
-  port: 8080
-
-stripe:
-  secret-key: ${STRIPE_SECRET_KEY}
-  publishable-key: ${STRIPE_PUBLISHABLE_KEY}
-
-app:
-  frontend-origin: ${FRONTEND_ORIGIN:http://localhost:5173}
-
 spring:
+  application:
+    name: ecommerce-platform
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ecommerce}
+    username: ${SPRING_DATASOURCE_USERNAME:ecommerce}
+    password: ${SPRING_DATASOURCE_PASSWORD:ecommerce}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-  cache:
-    # 預設維持 Redis；可用 SPRING_CACHE_TYPE=simple 或 none 覆寫
-    type: ${SPRING_CACHE_TYPE:redis}
-    redis:
-      time-to-live: 10m
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+
+app:
+  payment:
+    currency: ${APP_PAYMENT_CURRENCY:twd}
+
+dev:
+  internal-token: ${DEV_INTERNAL_TOKEN:dev-token}
+
+stripe:
+  secret-key: ${STRIPE_SECRET_KEY:}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+
+logging:
+  pattern:
+    level: "%5p [cid:%X{correlationId}]"
