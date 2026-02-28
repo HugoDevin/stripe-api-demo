@@ -84,6 +84,9 @@ export const useCheckoutStore = defineStore('checkout', () => {
 
     try {
       checkout.value = await paymentApi.createCheckout(selectedProduct.value)
+      if (!isStripeIntentClientSecret(checkout.value.clientSecret)) {
+        throw new Error('目前後端不是 Stripe 付款流程（clientSecret 非 Stripe 格式）')
+      }
       activeStep.value = 1
       await ensureStripeCardMounted()
     } catch {
@@ -96,11 +99,7 @@ export const useCheckoutStore = defineStore('checkout', () => {
 
     try {
       if (!isStripeIntentClientSecret(checkout.value.clientSecret)) {
-        await paymentApi.payEncrypted(checkout.value.orderId, 'dev-offline-fallback')
-        ElMessage.success('目前為離線/模擬付款模式，已直接完成付款')
-        await loadOrders()
-        activeStep.value = 2
-        return
+        throw new Error('後端回傳非 Stripe clientSecret，請確認後端已啟用 Stripe Gateway（dev/staging/prod）')
       }
 
       if (!stripe.value) {
