@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,8 +21,9 @@ public class AdminUserService {
   private final AdminEmailSender emailSender;
   @Value("${app.base-url:http://localhost:8080}") String baseUrl;
 
-  public AdminUserService(AdminUserRepository users, AdminEmailVerificationTokenRepository tokens, PasswordEncoder encoder, AdminEmailSender emailSender) {
-    this.users = users; this.tokens = tokens; this.encoder = encoder; this.emailSender = emailSender;
+  public AdminUserService(AdminUserRepository users, AdminEmailVerificationTokenRepository tokens, PasswordEncoder encoder, ObjectProvider<AdminEmailSender> emailSenderProvider) {
+    this.users = users; this.tokens = tokens; this.encoder = encoder;
+    this.emailSender = emailSenderProvider.getIfAvailable(() -> (to, url) -> {});
   }
 
   @Transactional
