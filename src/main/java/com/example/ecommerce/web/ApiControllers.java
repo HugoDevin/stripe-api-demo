@@ -94,7 +94,7 @@ class StripeWebhookController {
       }
       if (webhookRepo.existsByProviderEventId(e.getId())) return;
       try {
-        WebhookEventEntity we = new WebhookEventEntity(); we.providerEventId=e.getId(); we.type=e.getType(); we.payloadJson=payload; webhookRepo.save(we);
+        WebhookEventEntity we = new WebhookEventEntity(); we.providerEventId=e.getId(); we.type=e.getType(); we.payloadJson=payload; webhookRepo.saveAndFlush(we);
       } catch (DataIntegrityViolationException ignored) {
         if (!webhookRepo.existsByProviderEventId(e.getId())) throw ignored;
         return;
