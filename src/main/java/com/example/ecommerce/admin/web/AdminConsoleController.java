@@ -4,6 +4,7 @@ import com.example.ecommerce.admin.service.AdminUserService;
 import com.example.ecommerce.catalog.*;
 import com.example.ecommerce.inventory.*;
 import jakarta.validation.constraints.*;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 import org.springframework.stereotype.Controller;
@@ -30,7 +31,24 @@ public class AdminConsoleController {
   @GetMapping("/admin/products") String products(Model m){ m.addAttribute("products", productRepository.findAll()); return "admin/products/list"; }
   @GetMapping("/admin/products/new") String newProduct(Model m){ m.addAttribute("p", new Product()); return "admin/products/edit"; }
   @GetMapping("/admin/products/{sku}") String editProduct(@PathVariable String sku, Model m){ m.addAttribute("p", productRepository.findById(sku).orElseThrow()); return "admin/products/edit"; }
-  @PostMapping("/admin/products/save") String saveProduct(@ModelAttribute("p") Product p){ p.updatedAt=Instant.now(); if(p.createdAt==null)p.createdAt=Instant.now(); productRepository.save(p); return "redirect:/admin/products"; }
+  @PostMapping("/admin/products/save")
+  String saveProduct(@RequestParam String sku,
+                     @RequestParam String name,
+                     @RequestParam BigDecimal price,
+                     @RequestParam String currency,
+                     @RequestParam(required = false, defaultValue = "false") boolean active){
+    if (sku == null || sku.isBlank()) throw new IllegalArgumentException("sku is required");
+    Product p = productRepository.findById(sku).orElseGet(Product::new);
+    if (p.createdAt == null) p.createdAt = Instant.now();
+    p.sku = sku.trim();
+    p.name = name;
+    p.price = price;
+    p.currency = currency;
+    p.active = active;
+    p.updatedAt = Instant.now();
+    productRepository.save(p);
+    return "redirect:/admin/products";
+  }
   @PostMapping("/admin/products/{sku}/delete") String deleteProduct(@PathVariable String sku){ productRepository.deleteById(sku); return "redirect:/admin/products"; }
 
   @GetMapping("/admin/inventory") String inventory(Model m){ m.addAttribute("items", inventoryRepository.findAll()); return "admin/inventory/list"; }
