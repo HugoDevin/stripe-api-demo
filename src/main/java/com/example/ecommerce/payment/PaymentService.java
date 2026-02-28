@@ -28,15 +28,21 @@ public class PaymentService {
   @Transactional
   public void markSuccess(UUID orderId, String providerEventId){
     PaymentEntity p = paymentRepository.findByOrderId(orderId).orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND,"payment missing"));
+    if (p.status == PaymentStatus.SUCCEEDED) return;
     p.status=PaymentStatus.SUCCEEDED; paymentRepository.save(p);
-    OrderEntity o = orderRepository.findById(orderId).orElseThrow(); o.status=OrderStatus.PAID; orderRepository.save(o);
+    OrderEntity o = orderRepository.findById(orderId).orElseThrow();
+    if (o.status == OrderStatus.PAYMENT_PENDING || o.status == OrderStatus.CREATED) o.status=OrderStatus.PAID;
+    orderRepository.save(o);
     outbox.save(toOutbox("payment.succeeded", p, providerEventId));
   }
   @Transactional
   public void markFailed(UUID orderId, String providerEventId){
     PaymentEntity p = paymentRepository.findByOrderId(orderId).orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND,"payment missing"));
+    if (p.status == PaymentStatus.FAILED) return;
     p.status=PaymentStatus.FAILED; paymentRepository.save(p);
-    OrderEntity o = orderRepository.findById(orderId).orElseThrow(); o.status=OrderStatus.CANCELED; orderRepository.save(o);
+    OrderEntity o = orderRepository.findById(orderId).orElseThrow();
+    if (o.status == OrderStatus.PAYMENT_PENDING || o.status == OrderStatus.CREATED) o.status=OrderStatus.CANCELED;
+    orderRepository.save(o);
     outbox.save(toOutbox("payment.failed", p, providerEventId));
   }
 
