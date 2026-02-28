@@ -20,6 +20,8 @@ const toErrorMessage = (error: unknown, fallback: string) => {
   return fallback
 }
 
+const isStripeIntentClientSecret = (clientSecret: string) => /.+_secret_.+/.test(clientSecret)
+
 export const useCheckoutStore = defineStore('checkout', () => {
   const products = ref<Product[]>([])
   const orders = ref<Order[]>([])
@@ -90,14 +92,21 @@ export const useCheckoutStore = defineStore('checkout', () => {
   }
 
   const pay = async () => {
-    if (!stripe.value) {
-      ElMessage.error('Stripe 尚未初始化；請確認 publishable key 設定，或改用 HTTPS（Live 金鑰必須）')
-      return
-    }
-
     paying.value = true
 
     try {
+      if (!isStripeIntentClientSecret(checkout.value.clientSecret)) {
+        await paymentApi.payEncrypted(checkout.value.orderId, 'dev-offline-fallback')
+        ElMessage.success('目前為離線/模擬付款模式，已直接完成付款')
+        await loadOrders()
+        activeStep.value = 2
+        return
+      }
+
+      if (!stripe.value) {
+        throw new Error('Stripe 尚未初始化；請確認 publishable key 設定，或改用 HTTPS（Live 金鑰必須）')
+      }
+
       await ensureStripeCardMounted()
       if (!stripeCard.value) throw new Error('stripe card not mounted')
       const result = await stripe.value.confirmCardPayment(checkout.value.clientSecret, {
