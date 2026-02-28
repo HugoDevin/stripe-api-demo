@@ -1,6 +1,9 @@
 package com.example.ecommerce.admin.config;
 
 import com.example.ecommerce.admin.service.AdminUserDetailsService;
+import java.util.Arrays;
+import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.*;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.Customizer;
@@ -9,11 +12,17 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.*;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+  @Value("${app.cors.allowed-origins:http://localhost:5173}")
+  private String allowedOrigins;
+
   @Bean PasswordEncoder passwordEncoder(){ return new BCryptPasswordEncoder(); }
 
   @Bean
@@ -36,8 +45,21 @@ public class SecurityConfig {
   @Order(2)
   SecurityFilterChain apiChain(HttpSecurity http) throws Exception {
     http.securityMatcher("/**")
+        .cors(Customizer.withDefaults())
         .authorizeHttpRequests(a -> a.anyRequest().permitAll())
         .csrf(csrf -> csrf.disable());
     return http.build();
   }
+  @Bean
+  CorsConfigurationSource corsConfigurationSource(){
+    CorsConfiguration c = new CorsConfiguration();
+    c.setAllowedOriginPatterns(Arrays.stream(allowedOrigins.split(",")).map(String::trim).filter(v -> !v.isEmpty()).toList());
+    c.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
+    c.setAllowedHeaders(List.of("*"));
+    c.setAllowCredentials(true);
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/api/**", c);
+    return source;
+  }
+
 }

@@ -32,5 +32,7 @@ dev:
 
 app:
   base-url: ${APP_BASE_URL:http://localhost:8080}
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173}
 admin:
   allowed-cidrs: ${ADMIN_ALLOWED_CIDRS:127.0.0.1/32,::1/128,10.0.0.0/8,192.168.0.0/16,172.16.0.0/12}
