@@ -1,0 +1,11 @@
+<!doctype html><html xmlns:th="http://www.thymeleaf.org"><body>
+<h2>Admin Signup</h2>
+<p th:text="${message}"></p>
+<form method="post" th:action="@{/admin/register}">
+  <input name="email" placeholder="email"/>
+  <input name="name" placeholder="display name"/>
+  <input name="password" type="password" placeholder="password"/>
+  <button type="submit">Submit</button>
+</form>
+<a th:href="@{/admin/login}">Back to login</a>
+</body></html>
