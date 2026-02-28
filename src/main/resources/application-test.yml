@@ -12,3 +12,8 @@ spring:
     listener:
       simple:
         auto-startup: false
+
+  data:
+    redis:
+      repositories:
+        enabled: false

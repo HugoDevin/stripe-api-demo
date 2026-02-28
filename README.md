@@ -52,6 +52,7 @@ curl -X POST localhost:8080/internal/payments/<ORDER_ID>/simulate-success -H 'X-
 ```
 
 ## Troubleshooting
+- IntelliJ local run **不要**同時啟用 `test` profile（除非你就是要跑測試資料源）；一般啟動請用 `dev-offline`。若你仍要 `test` profile，專案已提供 H2 runtime 以避免 `org.h2.Driver` 缺失。
 - Active profile format must be a comma-separated profile list only (e.g. `SPRING_PROFILES_ACTIVE=dev-offline`). Do **not** append other env vars into this same value.
 - If IDE logs show profiles like `"SPRING_PROFILES_ACTIVE=dev-offline"` or `"STRIPE_SECRET_KEY=..."` as active profiles, your Run Configuration is misconfigured: put these in **Environment Variables**, not in **Active profiles** field.
 - `unknown flag: --build`: install `docker-compose-plugin` or `docker-compose` binary.
