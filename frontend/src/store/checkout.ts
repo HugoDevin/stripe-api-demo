@@ -1,40 +1,14 @@
 import { defineStore } from 'pinia'
 import { ElMessage } from 'element-plus'
-import { ref } from 'vue'
+import { nextTick, ref } from 'vue'
 import { paymentApi } from '../api/payment'
+import { loadStripeJs, type StripeLike } from '../api/stripe'
 import {
-  EMPTY_CARD_PAYLOAD,
   EMPTY_CHECKOUT,
-  type CardPayload,
   type CheckoutResponse,
   type Order,
   type Product
 } from '../types/payment'
-
-const toBase64 = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes))
-
-const decodeBase64 = (base64: string) => {
-  const binary = atob(base64)
-  return Uint8Array.from(binary, (char) => char.charCodeAt(0))
-}
-
-const encryptCardPayload = async (publicKeyBase64: string, payload: CardPayload) => {
-  const keyData = decodeBase64(publicKeyBase64)
-  const cryptoKey = await window.crypto.subtle.importKey(
-    'spki',
-    keyData,
-    {
-      name: 'RSA-OAEP',
-      hash: 'SHA-256'
-    },
-    false,
-    ['encrypt']
-  )
-
-  const encoded = new TextEncoder().encode(JSON.stringify(payload))
-  const encrypted = await window.crypto.subtle.encrypt({ name: 'RSA-OAEP' }, cryptoKey, encoded)
-  return toBase64(new Uint8Array(encrypted))
-}
 
 export const useCheckoutStore = defineStore('checkout', () => {
   const products = ref<Product[]>([])
@@ -43,8 +17,10 @@ export const useCheckoutStore = defineStore('checkout', () => {
   const activeStep = ref(0)
   const paying = ref(false)
   const checkout = ref<CheckoutResponse>(EMPTY_CHECKOUT)
-  const card = ref<CardPayload>({ ...EMPTY_CARD_PAYLOAD })
   const defaultCurrency = ref('USD')
+  const publishableKey = ref('')
+  const stripe = ref<StripeLike | null>(null)
+  const stripeCard = ref<unknown | null>(null)
 
   const loadProducts = async () => {
     products.value = await paymentApi.getProducts()
@@ -57,6 +33,24 @@ export const useCheckoutStore = defineStore('checkout', () => {
   const loadConfig = async () => {
     const config = await paymentApi.getConfig()
     defaultCurrency.value = config.currency
+    publishableKey.value = config.publishableKey || ''
+  }
+
+  const ensureStripeCardMounted = async () => {
+    if (!stripe.value || stripeCard.value) return
+    await nextTick()
+    const container = document.getElementById('stripe-card-element')
+    if (!container) return
+    const elements = stripe.value.elements()
+    const cardElement = elements.create('card')
+    cardElement.mount('#stripe-card-element')
+    stripeCard.value = cardElement
+  }
+
+  const initializeStripe = async () => {
+    if (!publishableKey.value) return
+    await loadStripeJs()
+    stripe.value = window.Stripe(publishableKey.value)
   }
 
   const createCheckout = async () => {
@@ -65,29 +59,32 @@ export const useCheckoutStore = defineStore('checkout', () => {
     try {
       checkout.value = await paymentApi.createCheckout(selectedProduct.value)
       activeStep.value = 1
-      card.value = { ...EMPTY_CARD_PAYLOAD }
+      await ensureStripeCardMounted()
     } catch {
       ElMessage.error('建立付款失敗')
     }
   }
 
   const pay = async () => {
-    if (!card.value.number || !card.value.expMonth || !card.value.expYear || !card.value.cvc) {
-      ElMessage.error('請完整輸入信用卡資料')
+    if (!stripe.value) {
+      ElMessage.error('目前未設定 Stripe 金鑰，無法在此環境付款')
       return
     }
 
     paying.value = true
 
     try {
-      const { publicKey } = await paymentApi.getPublicKey()
-      const encryptedData = await encryptCardPayload(publicKey, card.value)
-      await paymentApi.payEncrypted(checkout.value.orderId, encryptedData)
-      ElMessage.success('付款成功')
+      await ensureStripeCardMounted()
+      const result = await stripe.value.confirmCardPayment(checkout.value.clientSecret, {
+        payment_method: { card: stripeCard.value }
+      })
+      if (result.error) throw new Error(result.error.message || 'stripe payment failed')
+
+      ElMessage.success('付款已送出，等待 Stripe webhook 同步狀態')
       await loadOrders()
       activeStep.value = 2
     } catch {
-      ElMessage.error('付款失敗，請確認卡片資料')
+      ElMessage.error('付款失敗，請檢查卡片資料或 Stripe 設定')
     } finally {
       paying.value = false
     }
@@ -95,6 +92,7 @@ export const useCheckoutStore = defineStore('checkout', () => {
 
   const initialize = async () => {
     await Promise.all([loadConfig(), loadProducts(), loadOrders()])
+    await initializeStripe()
   }
 
   return {
@@ -104,7 +102,6 @@ export const useCheckoutStore = defineStore('checkout', () => {
     activeStep,
     paying,
     checkout,
-    card,
     defaultCurrency,
     createCheckout,
     pay,

@@ -26,6 +26,7 @@ logging:
     level: "%5p [corr:%X{correlationId}]"
 stripe:
   secret-key: ${STRIPE_SECRET_KEY:}
+  publishable-key: ${STRIPE_PUBLISHABLE_KEY:}
   webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
 dev:
   internal-token: ${DEV_INTERNAL_TOKEN:dev-token}

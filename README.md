@@ -51,6 +51,11 @@ curl -X POST 'localhost:8080/api/payments/create?orderId=<ORDER_ID>'
 curl -X POST localhost:8080/internal/payments/<ORDER_ID>/simulate-success -H 'X-DEV-TOKEN: dev-token'
 ```
 
+## Stripe flow in `dev` profile
+- Set `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, and `STRIPE_WEBHOOK_SECRET`.
+- Run app with `SPRING_PROFILES_ACTIVE=dev`.
+- Frontend checkout uses Stripe Elements + `confirmCardPayment`; backend final status is updated by `/api/stripe/webhook`.
+
 ## Troubleshooting
 - `dev-offline` 下預設不啟動 RabbitMQ listeners（避免本機未啟 RabbitMQ 時狂刷連線錯誤）；改由本機 outbox dispatcher 直接處理事件，流程仍會跑完。
 - IntelliJ local run **不要**同時啟用 `test` profile（除非你就是要跑測試資料源）；一般啟動請用 `dev-offline`。若你仍要 `test` profile，專案已提供 H2 runtime 以避免 `org.h2.Driver` 缺失。

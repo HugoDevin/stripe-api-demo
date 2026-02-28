@@ -27,29 +27,12 @@
         <div v-else-if="activeStep === 1">
           <p>商品：{{ checkout.product }} / 金額：{{ formatMinorAmount(checkout.amount, checkout.currency) }}</p>
           <el-form label-width="100px" class="card-form">
-            <el-form-item label="卡號">
-              <el-input v-model="card.number" maxlength="19" placeholder="4242424242424242" />
+            <el-form-item label="信用卡">
+              <div id="stripe-card-element" class="stripe-card-element" />
             </el-form-item>
-            <el-row :gutter="12">
-              <el-col :span="8">
-                <el-form-item label="月">
-                  <el-input-number v-model="card.expMonth" :min="1" :max="12" :controls="false" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item label="年">
-                  <el-input-number v-model="card.expYear" :min="2024" :max="2099" :controls="false" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="8">
-                <el-form-item label="CVC">
-                  <el-input v-model="card.cvc" maxlength="4" show-password placeholder="123" />
-                </el-form-item>
-              </el-col>
-            </el-row>
           </el-form>
           <el-alert
-            title="卡片資料會先在前端以 RSA-OAEP 加密，再送往後端解密處理"
+            title="前端將透過 Stripe Elements 與 Stripe.js 完成付款確認，付款結果由 Stripe webhook 回傳後端"
             type="info"
             :closable="false"
             class="tip"
@@ -82,7 +65,7 @@ import { useCheckoutStore } from '../store/checkout'
 
 const checkoutStore = useCheckoutStore()
 
-const { products, orders, selectedProduct, activeStep, paying, checkout, card, defaultCurrency } =
+const { products, orders, selectedProduct, activeStep, paying, checkout, defaultCurrency } =
   storeToRefs(checkoutStore)
 const { createCheckout, pay, initialize } = checkoutStore
 
@@ -111,5 +94,12 @@ onMounted(async () => {
 }
 .tip {
   margin-bottom: 16px;
+}
+.stripe-card-element {
+  min-height: 40px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  padding: 10px 12px;
+  background: #fff;
 }
 </style>
