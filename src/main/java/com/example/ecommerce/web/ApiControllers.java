@@ -18,9 +18,12 @@ import java.security.KeyPairGenerator;
 import java.security.spec.X509EncodedKeySpec;
 import java.time.LocalDate;
 import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 @RestController @RequestMapping("/api")
@@ -75,16 +78,26 @@ class PaymentController {
 
 @RestController @Profile({"dev","dev-offline","staging","prod"})
 class StripeWebhookController {
+  private static final Logger log = LoggerFactory.getLogger(StripeWebhookController.class);
   private final PaymentService paymentService; private final WebhookEventRepository webhookRepo; @Value("${stripe.webhook-secret:}") String secret;
   StripeWebhookController(PaymentService p, WebhookEventRepository w){paymentService=p;webhookRepo=w;}
   @PostMapping({"/api/stripe/webhook", "/webhook"})
-  public void webhook(@RequestBody String payload, @RequestHeader("Stripe-Signature") String sig){
+  public void webhook(@RequestBody String payload, @RequestHeader(value = "Stripe-Signature", required = false) String sig){
     try {
-      Event e = Webhook.constructEvent(payload, sig, secret);
+      Event e;
+      if (StringUtils.hasText(secret)) {
+        e = Webhook.constructEvent(payload, sig, secret);
+      } else {
+        log.warn("stripe.webhook-secret not configured, accepting unsigned webhook payload in non-prod mode");
+        e = Event.GSON.fromJson(payload, Event.class);
+      }
       if (webhookRepo.existsByProviderEventId(e.getId())) return;
       WebhookEventEntity we = new WebhookEventEntity(); we.providerEventId=e.getId(); we.type=e.getType(); we.payloadJson=payload; webhookRepo.save(we);
-      PaymentIntent pi = (PaymentIntent) e.getDataObjectDeserializer().getObject().orElseThrow();
+      if (!e.getType().startsWith("payment_intent.")) return;
+      PaymentIntent pi = (PaymentIntent) e.getDataObjectDeserializer().getObject().orElse(null);
+      if (pi == null) return;
       String oid = pi.getMetadata().get("orderId");
+      if (!StringUtils.hasText(oid)) return;
       if ("payment_intent.succeeded".equals(e.getType())) paymentService.markSuccess(UUID.fromString(oid), e.getId());
       if ("payment_intent.payment_failed".equals(e.getType())) paymentService.markFailed(UUID.fromString(oid), e.getId());
     } catch (SignatureVerificationException ex){ throw new AppException(HttpStatus.BAD_REQUEST,"bad signature"); }

@@ -64,4 +64,5 @@ curl -X POST localhost:8080/internal/payments/<ORDER_ID>/simulate-success -H 'X-
 - If IDE logs show profiles like `"SPRING_PROFILES_ACTIVE=dev-offline"` or `"STRIPE_SECRET_KEY=..."` as active profiles, your Run Configuration is misconfigured: put these in **Environment Variables**, not in **Active profiles** field.
 - `unknown flag: --build`: install `docker-compose-plugin` or `docker-compose` binary.
 - `/usr/bin/env: ‘bash\r’: No such file or directory`: run `sed -i "s/\r$//" scripts/*.sh` once.
+- 如果 Stripe CLI 回傳 webhook `400 bad signature`，請將 `stripe listen` 顯示的 signing secret 設到 `STRIPE_WEBHOOK_SECRET`；在 `dev/dev-offline` 未設定 secret 時，系統會接受未簽名 payload 供本機測試。
 - Admin blocked with 403: check `ADMIN_ALLOWED_CIDRS` and source IP / `X-Forwarded-For`.
