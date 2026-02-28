@@ -2,10 +2,12 @@ package com.example.ecommerce.admin.service;
 
 import com.example.ecommerce.admin.domain.AdminEmailOutbox;
 import com.example.ecommerce.admin.repo.AdminEmailOutboxRepository;
+import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 @Component
+@Primary
 @Profile("dev-offline")
 public class FakeAdminEmailSender implements AdminEmailSender {
   private final AdminEmailOutboxRepository repo;
