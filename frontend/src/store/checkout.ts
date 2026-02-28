@@ -38,13 +38,21 @@ export const useCheckoutStore = defineStore('checkout', () => {
 
   const ensureStripeCardMounted = async () => {
     if (!stripe.value || stripeCard.value) return
-    await nextTick()
-    const container = document.getElementById('stripe-card-element')
-    if (!container) return
-    const elements = stripe.value.elements()
-    const cardElement = elements.create('card')
-    cardElement.mount('#stripe-card-element')
-    stripeCard.value = cardElement
+
+    for (let i = 0; i < 8; i += 1) {
+      await nextTick()
+      const container = document.getElementById('stripe-card-element')
+      if (container && container.clientWidth > 80) {
+        const elements = stripe.value.elements()
+        const cardElement = elements.create('card')
+        cardElement.mount('#stripe-card-element')
+        stripeCard.value = cardElement
+        return
+      }
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    }
+
+    throw new Error('stripe card container not ready')
   }
 
   const initializeStripe = async () => {
@@ -75,6 +83,7 @@ export const useCheckoutStore = defineStore('checkout', () => {
 
     try {
       await ensureStripeCardMounted()
+      if (!stripeCard.value) throw new Error('stripe card not mounted')
       const result = await stripe.value.confirmCardPayment(checkout.value.clientSecret, {
         payment_method: { card: stripeCard.value }
       })

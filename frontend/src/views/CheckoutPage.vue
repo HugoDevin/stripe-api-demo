@@ -28,7 +28,9 @@
           <p>商品：{{ checkout.product }} / 金額：{{ formatMinorAmount(checkout.amount, checkout.currency) }}</p>
           <el-form label-width="100px" class="card-form">
             <el-form-item label="信用卡">
-              <div id="stripe-card-element" class="stripe-card-element" />
+              <div class="stripe-card-wrapper">
+                <div id="stripe-card-element" class="stripe-card-element" />
+              </div>
             </el-form-item>
           </el-form>
           <el-alert
@@ -95,11 +97,16 @@ onMounted(async () => {
 .tip {
   margin-bottom: 16px;
 }
+.stripe-card-wrapper {
+  width: 100%;
+}
 .stripe-card-element {
+  width: 100%;
   min-height: 40px;
   border: 1px solid #dcdfe6;
   border-radius: 4px;
   padding: 10px 12px;
   background: #fff;
+  box-sizing: border-box;
 }
 </style>
