@@ -1,0 +1,9 @@
+<!doctype html><html xmlns:th="http://www.thymeleaf.org"><body>
+<h2>Admin Login</h2>
+<form method="post" th:action="@{/admin/login}">
+  <input name="username" placeholder="email"/>
+  <input name="password" type="password" placeholder="password"/>
+  <button type="submit">Login</button>
+</form>
+<a th:href="@{/admin/register}">Register</a>
+</body></html>

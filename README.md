@@ -1,73 +1,61 @@
-# Stripe Spring Boot + Vue3 Demo
+# Stripe Event-Driven Ecommerce Backend (Java 21 / Spring Boot 3)
 
-此專案支援 **Vue3 與 Thymeleaf 共存**，並已加上模組化分層，避免 API Controller 與頁面 Controller 混在一起。
-
-## 模組化分層
-- `controller.api`：對外 REST API（`/api/**`）
-- `controller.web`：Thymeleaf 頁面路由（`/web/**`）
-- `application`：用例流程協調（`CheckoutApplicationService`）
-- `domain.order`：訂單領域邏輯（`OrderService`）
-- `service` / `repository`：外部整合與資料來源（Stripe、商品目錄等）
-
-## 資料庫與快取
-- 正式環境預設使用 **PostgreSQL**（`spring.datasource.*`）。
-- `dev` profile 使用 **H2（PostgreSQL 模式）** 方便本機開發。
-- `src/main/resources/data-dev.sql` 已提供 H2 測試資料（商品 + 使用者訂購紀錄）。
-- 商品購物清單 API 透過 Spring Cache 快取，避免每次都重新查詢 DB。
-- `dev` profile 會啟用 Mock 付款服務，模擬付款成功，方便本機驗證付款流程（不實際呼叫 Stripe）。
-- 付款完成前會檢查 Stripe 回傳的金額與幣別是否與訂單一致，避免幣別/金額錯置。
-
-## 路由規劃
-- `/`：導向 `/web`
-- `/web/**`：Thymeleaf 頁面
-- `/api/**`：JSON API（供 Vue3 使用）
-- `/admin`：商品管理後台（需登入）
-
-## Backend 啟動
+## Run with Docker Compose (Docker Engine)
 ```bash
-mvn spring-boot:run
+cp .env.example .env
+./scripts/docker-engine-up.sh
+```
+Services:
+- App/API: http://localhost:8080
+- Admin Console: http://localhost:8080/admin
+- RabbitMQ UI: http://localhost:15672 (guest/guest)
+
+## Admin Console (Thymeleaf + Spring Security)
+- Login: `/admin/login`
+- Register: `/admin/register`
+- Verify email: `/admin/verify-email?token=...`
+- Dashboard: `/admin/dashboard`
+- Products CRUD: `/admin/products`
+- Inventory adjust/query: `/admin/inventory`
+- User management (SUPER only): `/admin/users`
+- Dev email outbox (dev-offline + SUPER only): `/admin/dev/emails`
+
+### Default admin accounts (dev-offline, idempotent initializer)
+- Super admin: `admin@example.com` / `Admin123!`
+- Staff admin: `staff@example.com` / `Staff123!`
+- Passwords are stored as **bcrypt hash** in DB.
+
+### Admin activation flow
+1. Register from `/admin/register` (email/password/name)
+2. System issues one-time token (24h), sends verify URL
+3. Open verify URL => `email_verified=true`
+4. SUPER ADMIN enables account at `/admin/users/{id}`
+5. Only `enabled=true && email_verified=true && !locked` can login
+
+## Security Notes
+- `/admin/**` uses form-login + session
+- Roles:
+  - `ROLE_ADMIN_SUPER`: user management + products/inventory + dev email page
+  - `ROLE_ADMIN`: products/inventory only
+- Admin IP allowlist (app-layer) via `admin.allowed-cidrs`
+  - default: `127.0.0.1/32,::1/128,10.0.0.0/8,192.168.0.0/16,172.16.0.0/12`
+  - configurable by env: `ADMIN_ALLOWED_CIDRS`
+- In reverse proxy setups, app checks `X-Forwarded-For` first.
+
+## API demo flow (dev-offline)
+```bash
+curl -X POST localhost:8080/api/products -H 'Content-Type: application/json' -d '{"sku":"SKU-1","name":"Book","price":100,"currency":"USD","active":true}'
+curl -X POST 'localhost:8080/api/inventory/SKU-1/adjust?qty=10'
+curl -X POST localhost:8080/api/orders -H 'Content-Type: application/json' -d '{"customerEmail":"a@demo.com","items":[{"sku":"SKU-1","qty":1}]}'
+curl -X POST 'localhost:8080/api/payments/create?orderId=<ORDER_ID>'
+curl -X POST localhost:8080/internal/payments/<ORDER_ID>/simulate-success -H 'X-DEV-TOKEN: dev-token'
 ```
 
-必要環境變數：
-- `STRIPE_SECRET_KEY`
-- `STRIPE_PUBLISHABLE_KEY`
-
-可選環境變數：
-- `SPRING_PROFILES_ACTIVE`（設為 `dev` 時改用 H2）
-- `FRONTEND_ORIGIN`（預設 `http://localhost:5173`）
-- `APP_PAYMENT_CURRENCY`（預設 `usd`；可設 `twd` 等幣別，前後端會同步顯示與驗證）
-- `SPRING_CACHE_TYPE`（`redis` / `simple` / `none`）
-- `APP_ADMIN_USERNAME`（後台帳號，預設 `admin`）
-- `APP_ADMIN_PASSWORD`（後台密碼，預設 `admin123`）
-
-## 後台功能
-- 支援商品價格修改
-- 支援商品上架 / 下架
-- 下架商品不會出現在前台購買清單，也不能被建立結帳
-
-## Frontend 技術堆疊結構
-- `src/api/`：Axios 請求封裝
-- `src/types/`：TypeScript 介面/型別定義
-- `src/store/`：Pinia（State / Actions）
-- `src/views/`：SPA 各個頁面
-- `src/components/`：Element Plus 二次封裝組件
-- `src/router/`：前端路由設定
-
-## Frontend（Vue3）啟動
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-若後端非預設位置，可在前端使用：
-```bash
-VITE_API_BASE_URL=http://localhost:8080/api npm run dev
-```
-
-## API 清單
-- `GET /api/config`
-- `GET /api/products`
-- `POST /api/checkout`（可帶 `customerId` 紀錄使用者）
-- `POST /api/orders/{orderId}/complete`
-- `GET /api/orders`
+## Troubleshooting
+- `dev-offline` 下預設不啟動 RabbitMQ listeners（避免本機未啟 RabbitMQ 時狂刷連線錯誤）；改由本機 outbox dispatcher 直接處理事件，流程仍會跑完。
+- IntelliJ local run **不要**同時啟用 `test` profile（除非你就是要跑測試資料源）；一般啟動請用 `dev-offline`。若你仍要 `test` profile，專案已提供 H2 runtime 以避免 `org.h2.Driver` 缺失。
+- Active profile format must be a comma-separated profile list only (e.g. `SPRING_PROFILES_ACTIVE=dev-offline`). Do **not** append other env vars into this same value.
+- If IDE logs show profiles like `"SPRING_PROFILES_ACTIVE=dev-offline"` or `"STRIPE_SECRET_KEY=..."` as active profiles, your Run Configuration is misconfigured: put these in **Environment Variables**, not in **Active profiles** field.
+- `unknown flag: --build`: install `docker-compose-plugin` or `docker-compose` binary.
+- `/usr/bin/env: ‘bash\r’: No such file or directory`: run `sed -i "s/\r$//" scripts/*.sh` once.
+- Admin blocked with 403: check `ADMIN_ALLOWED_CIDRS` and source IP / `X-Forwarded-For`.

@@ -1,0 +1,8 @@
+package com.example.ecommerce.invoicing;
+
+import java.util.UUID;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ReceiptRepository extends JpaRepository<Receipt, UUID> {
+  boolean existsByOrderId(UUID orderId);
+}

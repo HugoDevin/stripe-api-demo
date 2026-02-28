@@ -1,0 +1,8 @@
+<!doctype html><html xmlns:th="http://www.thymeleaf.org"><body>
+<h3>Products</h3>
+<a th:href="@{/admin/products/new}">New</a>
+<table border="1"><tr><th>SKU</th><th>Name</th><th>Price</th><th></th></tr>
+<tr th:each="p:${products}"><td th:text="${p.sku}"></td><td th:text="${p.name}"></td><td th:text="${p.price}"></td>
+<td><a th:href="@{'/admin/products/'+${p.sku}}">Edit</a></td></tr></table>
+<a th:href="@{/admin/dashboard}">Back</a>
+</body></html>
