@@ -73,11 +73,11 @@ class PaymentController {
   @GetMapping("/{id}") PaymentEntity get(@PathVariable UUID id){ return repo.findById(id).orElseThrow(); }
 }
 
-@RestController @RequestMapping("/api/stripe") @Profile({"dev","dev-offline","staging","prod"})
+@RestController @Profile({"dev","dev-offline","staging","prod"})
 class StripeWebhookController {
   private final PaymentService paymentService; private final WebhookEventRepository webhookRepo; @Value("${stripe.webhook-secret:}") String secret;
   StripeWebhookController(PaymentService p, WebhookEventRepository w){paymentService=p;webhookRepo=w;}
-  @PostMapping("/webhook")
+  @PostMapping({"/api/stripe/webhook", "/webhook"})
   public void webhook(@RequestBody String payload, @RequestHeader("Stripe-Signature") String sig){
     try {
       Event e = Webhook.constructEvent(payload, sig, secret);

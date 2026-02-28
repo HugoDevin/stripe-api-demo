@@ -54,7 +54,8 @@ curl -X POST localhost:8080/internal/payments/<ORDER_ID>/simulate-success -H 'X-
 ## Stripe flow in `dev` profile
 - Set `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, and `STRIPE_WEBHOOK_SECRET`.
 - Run app with `SPRING_PROFILES_ACTIVE=dev`.
-- Frontend checkout uses Stripe Elements + `confirmCardPayment`; backend final status is updated by `/api/stripe/webhook`.
+- Frontend checkout uses Stripe Elements + `confirmCardPayment`; backend final status is updated by Stripe webhook (`/api/stripe/webhook`, also compatible with `/webhook` for Stripe CLI defaults).
+- Stripe CLI example: `stripe listen --forward-to http://localhost:8080/webhook` (or `/api/stripe/webhook`).
 
 ## Troubleshooting
 - `dev-offline` 下預設不啟動 RabbitMQ listeners（避免本機未啟 RabbitMQ 時狂刷連線錯誤）；改由本機 outbox dispatcher 直接處理事件，流程仍會跑完。
