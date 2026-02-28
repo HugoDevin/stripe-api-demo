@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
-@Component @Profile({"staging","prod"})
+@Component @Profile({"dev","dev-offline","staging","prod"})
 public class StripePaymentGateway implements PaymentGateway {
   @Value("${stripe.secret-key:}") String secret;
   @PostConstruct void init(){Stripe.apiKey = secret;}

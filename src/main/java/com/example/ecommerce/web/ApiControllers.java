@@ -18,9 +18,12 @@ import java.security.KeyPairGenerator;
 import java.security.spec.X509EncodedKeySpec;
 import java.time.LocalDate;
 import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 @RestController @RequestMapping("/api")
@@ -46,8 +49,21 @@ class OrderController {
     var o=service.create(req.customerEmail, req.items.stream().map(i->new OrderService.ItemRequest(i.sku,i.qty)).toList());
     return Map.of("orderId",o.id,"status",o.status,"totalAmount",o.totalAmount,"currency",o.currency);
   }
-  @GetMapping List<OrderEntity> list(){ return orderRepository.findAll(); }
-  @GetMapping("/{id}") OrderEntity get(@PathVariable UUID id){return service.get(id);}  
+  @GetMapping List<OrderResponse> list(){ return orderRepository.findAll().stream().map(OrderResponse::from).toList(); }
+  @GetMapping("/{id}") OrderResponse get(@PathVariable UUID id){return OrderResponse.from(service.get(id));}
+
+  record OrderResponse(UUID id, OrderStatus status, java.math.BigDecimal totalAmount, String currency, List<OrderItemResponse> items){
+    static OrderResponse from(OrderEntity order){
+      return new OrderResponse(
+          order.id,
+          order.status,
+          order.totalAmount,
+          order.currency,
+          order.items.stream().map(i -> new OrderItemResponse(i.sku, i.name, i.qty)).toList());
+    }
+  }
+
+  record OrderItemResponse(String sku, String name, int qty) {}
   record CreateOrderRequest(@Email String customerEmail, @NotEmpty List<Item> items){}
   record Item(@NotBlank String sku, @Min(1) int qty){}
 }
@@ -60,21 +76,48 @@ class PaymentController {
   @GetMapping("/{id}") PaymentEntity get(@PathVariable UUID id){ return repo.findById(id).orElseThrow(); }
 }
 
-@RestController @RequestMapping("/api/stripe") @Profile({"staging","prod"})
+@RestController @Profile({"dev","dev-offline","staging","prod"})
 class StripeWebhookController {
+  private static final Logger log = LoggerFactory.getLogger(StripeWebhookController.class);
   private final PaymentService paymentService; private final WebhookEventRepository webhookRepo; @Value("${stripe.webhook-secret:}") String secret;
   StripeWebhookController(PaymentService p, WebhookEventRepository w){paymentService=p;webhookRepo=w;}
-  @PostMapping("/webhook")
-  public void webhook(@RequestBody String payload, @RequestHeader("Stripe-Signature") String sig){
+  @PostMapping({"/api/stripe/webhook", "/webhook"})
+  public void webhook(@RequestBody String payload, @RequestHeader(value = "Stripe-Signature", required = false) String sig){
     try {
-      Event e = Webhook.constructEvent(payload, sig, secret);
-      if (webhookRepo.existsByProviderEventId(e.getId())) return;
-      WebhookEventEntity we = new WebhookEventEntity(); we.providerEventId=e.getId(); we.type=e.getType(); we.payloadJson=payload; webhookRepo.save(we);
-      PaymentIntent pi = (PaymentIntent) e.getDataObjectDeserializer().getObject().orElseThrow();
+      Event e;
+      if (StringUtils.hasText(secret)) {
+        e = verifyWithAnyConfiguredSecret(payload, sig);
+      } else {
+        log.warn("stripe.webhook-secret not configured, accepting unsigned webhook payload in non-prod mode");
+        e = Event.GSON.fromJson(payload, Event.class);
+      }
+      if (webhookRepo.insertIgnore(UUID.randomUUID(), e.getId(), e.getType(), payload) == 0) return;
+      if (!e.getType().startsWith("payment_intent.")) return;
+      PaymentIntent pi = (PaymentIntent) e.getDataObjectDeserializer().getObject().orElse(null);
+      if (pi == null) return;
       String oid = pi.getMetadata().get("orderId");
+      if (!StringUtils.hasText(oid)) return;
       if ("payment_intent.succeeded".equals(e.getType())) paymentService.markSuccess(UUID.fromString(oid), e.getId());
       if ("payment_intent.payment_failed".equals(e.getType())) paymentService.markFailed(UUID.fromString(oid), e.getId());
-    } catch (SignatureVerificationException ex){ throw new AppException(HttpStatus.BAD_REQUEST,"bad signature"); }
+    } catch (SignatureVerificationException ex){
+      log.warn("stripe webhook signature verification failed: {}", ex.getMessage());
+      throw new AppException(HttpStatus.BAD_REQUEST,"bad signature - check STRIPE_WEBHOOK_SECRET matches current Stripe endpoint/CLI secret");
+    }
+  }
+
+  private Event verifyWithAnyConfiguredSecret(String payload, String sig) throws SignatureVerificationException {
+    SignatureVerificationException last = null;
+    for (String candidate : secret.split(",")) {
+      String trimmed = candidate.trim();
+      if (trimmed.isEmpty()) continue;
+      try {
+        return Webhook.constructEvent(payload, sig, trimmed);
+      } catch (SignatureVerificationException ex) {
+        last = ex;
+      }
+    }
+    if (last != null) throw last;
+    throw new SignatureVerificationException("no usable webhook secret configured", sig);
   }
 }
 

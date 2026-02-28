@@ -14,6 +14,7 @@ import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,7 +31,12 @@ public class PaymentEventConsumers {
     var m=parse(body); if(done(m,"receipt")) return;
     UUID oid = UUID.fromString((String)m.get("orderId"));
     if (receiptRepo.existsByOrderId(oid)) { mark(m,"receipt"); return; }
-    Receipt r = new Receipt(); r.orderId=oid; r.receiptNo="R-"+System.currentTimeMillis(); receiptRepo.save(r); mark(m,"receipt");
+    try {
+      Receipt r = new Receipt(); r.orderId=oid; r.receiptNo="R-"+System.currentTimeMillis(); receiptRepo.save(r);
+    } catch (DataIntegrityViolationException ignored) {
+      if (!receiptRepo.existsByOrderId(oid)) throw ignored;
+    }
+    mark(m,"receipt");
   }
 
   @RabbitListener(queues = "fulfillment.queue") @Transactional
