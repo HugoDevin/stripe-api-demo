@@ -86,7 +86,7 @@ class StripeWebhookController {
     try {
       Event e;
       if (StringUtils.hasText(secret)) {
-        e = Webhook.constructEvent(payload, sig, secret);
+        e = verifyWithAnyConfiguredSecret(payload, sig);
       } else {
         log.warn("stripe.webhook-secret not configured, accepting unsigned webhook payload in non-prod mode");
         e = Event.GSON.fromJson(payload, Event.class);
@@ -100,7 +100,25 @@ class StripeWebhookController {
       if (!StringUtils.hasText(oid)) return;
       if ("payment_intent.succeeded".equals(e.getType())) paymentService.markSuccess(UUID.fromString(oid), e.getId());
       if ("payment_intent.payment_failed".equals(e.getType())) paymentService.markFailed(UUID.fromString(oid), e.getId());
-    } catch (SignatureVerificationException ex){ throw new AppException(HttpStatus.BAD_REQUEST,"bad signature"); }
+    } catch (SignatureVerificationException ex){
+      log.warn("stripe webhook signature verification failed: {}", ex.getMessage());
+      throw new AppException(HttpStatus.BAD_REQUEST,"bad signature - check STRIPE_WEBHOOK_SECRET matches current Stripe endpoint/CLI secret");
+    }
+  }
+
+  private Event verifyWithAnyConfiguredSecret(String payload, String sig) throws SignatureVerificationException {
+    SignatureVerificationException last = null;
+    for (String candidate : secret.split(",")) {
+      String trimmed = candidate.trim();
+      if (trimmed.isEmpty()) continue;
+      try {
+        return Webhook.constructEvent(payload, sig, trimmed);
+      } catch (SignatureVerificationException ex) {
+        last = ex;
+      }
+    }
+    if (last != null) throw last;
+    throw new SignatureVerificationException("no usable webhook secret configured", sig);
   }
 }
 
