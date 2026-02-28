@@ -46,8 +46,21 @@ class OrderController {
     var o=service.create(req.customerEmail, req.items.stream().map(i->new OrderService.ItemRequest(i.sku,i.qty)).toList());
     return Map.of("orderId",o.id,"status",o.status,"totalAmount",o.totalAmount,"currency",o.currency);
   }
-  @GetMapping List<OrderEntity> list(){ return orderRepository.findAll(); }
-  @GetMapping("/{id}") OrderEntity get(@PathVariable UUID id){return service.get(id);}  
+  @GetMapping List<OrderResponse> list(){ return orderRepository.findAll().stream().map(OrderResponse::from).toList(); }
+  @GetMapping("/{id}") OrderResponse get(@PathVariable UUID id){return OrderResponse.from(service.get(id));}
+
+  record OrderResponse(UUID id, OrderStatus status, java.math.BigDecimal totalAmount, String currency, List<OrderItemResponse> items){
+    static OrderResponse from(OrderEntity order){
+      return new OrderResponse(
+          order.id,
+          order.status,
+          order.totalAmount,
+          order.currency,
+          order.items.stream().map(i -> new OrderItemResponse(i.sku, i.name, i.qty)).toList());
+    }
+  }
+
+  record OrderItemResponse(String sku, String name, int qty) {}
   record CreateOrderRequest(@Email String customerEmail, @NotEmpty List<Item> items){}
   record Item(@NotBlank String sku, @Min(1) int qty){}
 }
