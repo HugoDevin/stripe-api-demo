@@ -1,0 +1,14 @@
+CREATE TABLE products (sku varchar(64) PRIMARY KEY,name varchar(255) NOT NULL,price numeric(19,2) NOT NULL,currency varchar(8) NOT NULL,active boolean NOT NULL,created_at timestamptz NOT NULL,updated_at timestamptz NOT NULL);
+CREATE TABLE inventory (sku varchar(64) PRIMARY KEY REFERENCES products(sku),available_qty int NOT NULL CHECK (available_qty >= 0),reserved_qty int NOT NULL,version bigint NOT NULL,updated_at timestamptz NOT NULL);
+CREATE TABLE inventory_reservations (id uuid PRIMARY KEY,order_id uuid UNIQUE NOT NULL,sku varchar(64) NOT NULL,qty int NOT NULL,status varchar(32) NOT NULL,expires_at timestamptz NOT NULL,created_at timestamptz NOT NULL,updated_at timestamptz NOT NULL);
+CREATE TABLE orders (id uuid PRIMARY KEY,customer_email varchar(255) NOT NULL,status varchar(32) NOT NULL,total_amount numeric(19,2) NOT NULL,currency varchar(8) NOT NULL,created_at timestamptz NOT NULL,updated_at timestamptz NOT NULL);
+CREATE TABLE order_items (id uuid PRIMARY KEY,order_id uuid REFERENCES orders(id),sku varchar(64),name varchar(255),unit_price numeric(19,2),qty int,line_total numeric(19,2));
+CREATE TABLE payments (id uuid PRIMARY KEY,order_id uuid UNIQUE,provider varchar(32),provider_intent_id varchar(255),status varchar(32),amount numeric(19,2),currency varchar(8),client_secret varchar(255),created_at timestamptz,updated_at timestamptz);
+CREATE TABLE webhook_events (id uuid PRIMARY KEY,provider_event_id varchar(255) UNIQUE,type varchar(120),payload_json text,received_at timestamptz);
+CREATE TABLE outbox_events (id uuid PRIMARY KEY,event_type varchar(120),aggregate_id varchar(64),payload_json text,status varchar(16),created_at timestamptz,sent_at timestamptz);
+CREATE TABLE receipts (id uuid PRIMARY KEY,order_id uuid UNIQUE,receipt_no varchar(64) UNIQUE,issued_at timestamptz);
+CREATE TABLE fulfillments (id uuid PRIMARY KEY,order_id uuid UNIQUE,status varchar(32),activated_at timestamptz,details_json text);
+CREATE TABLE notifications (id uuid PRIMARY KEY,order_id uuid,channel varchar(32),to_addr varchar(255),subject varchar(255),body text,status varchar(32),sent_at timestamptz,created_at timestamptz);
+CREATE TABLE accounting_entries (id uuid PRIMARY KEY,order_id uuid UNIQUE,debit_account varchar(64),credit_account varchar(64),amount numeric(19,2),currency varchar(8),created_at timestamptz);
+CREATE TABLE sales_daily_fact (date date PRIMARY KEY,total_amount numeric(19,2) NOT NULL,order_count bigint NOT NULL,updated_at timestamptz NOT NULL);
+CREATE TABLE processed_events (id uuid PRIMARY KEY,event_id varchar(255) NOT NULL,consumer_name varchar(64) NOT NULL,processed_at timestamptz NOT NULL,UNIQUE(event_id, consumer_name));

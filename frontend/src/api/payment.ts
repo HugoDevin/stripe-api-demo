@@ -7,8 +7,8 @@ export const paymentApi = {
     return data
   },
   async getProducts() {
-    const { data } = await http.get<Product[]>('/products')
-    return data
+    const { data } = await http.get<Array<{ name: string; price: number }>>('/products')
+    return data.map((item) => ({ name: item.name, amount: item.price })) as Product[]
   },
   async getPublicKey() {
     const { data } = await http.get<PublicKeyResponse>('/security/public-key')

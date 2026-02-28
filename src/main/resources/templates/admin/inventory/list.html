@@ -1,0 +1,8 @@
+<!doctype html><html xmlns:th="http://www.thymeleaf.org"><body>
+<h3>Inventory</h3>
+<table border="1"><tr><th>SKU</th><th>Available</th><th>Reserved</th><th>Adjust</th></tr>
+<tr th:each="i:${items}">
+<td th:text="${i.sku}"></td><td th:text="${i.availableQty}"></td><td th:text="${i.reservedQty}"></td>
+<td><form method="post" th:action="@{'/admin/inventory/'+${i.sku}+'/adjust'}"><input name="qty"/><button>Apply</button></form></td></tr></table>
+<a th:href="@{/admin/dashboard}">Back</a>
+</body></html>
