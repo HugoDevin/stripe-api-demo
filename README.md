@@ -54,5 +54,6 @@ Reservation will be released and order canceled.
 - 409 insufficient stock: reservation atomic update failed.
 - Idempotent redelivery: see `processed_events` table; duplicate events are ignored per consumer.
 - If Docker daemon is unreachable, verify Docker Engine is running and socket exists: `ls -l /var/run/docker.sock`.
-- Use non-Desktop startup command: `./scripts/docker-engine-up.sh` (forces `DOCKER_HOST=unix:///var/run/docker.sock`).
+- Use non-Desktop startup command: `./scripts/docker-engine-up.sh` (forces `DOCKER_HOST=unix:///var/run/docker.sock`, auto uses `docker compose` or fallback `docker-compose`).
+- If you see `unknown flag: --build` after running script, your Docker Compose plugin is missing. Install `docker-compose-plugin` or `docker-compose` binary.
 - `/usr/bin/env: ‘bash\r’: No such file or directory`: run `sed -i "s/\r$//" scripts/*.sh` once; `.gitattributes` already enforces LF for `.sh`.
