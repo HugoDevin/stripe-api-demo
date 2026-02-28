@@ -89,8 +89,8 @@ export const useCheckoutStore = defineStore('checkout', () => {
       }
       activeStep.value = 1
       await ensureStripeCardMounted()
-    } catch {
-      ElMessage.error('建立付款失敗')
+    } catch (error: unknown) {
+      ElMessage.error(toErrorMessage(error, '建立付款失敗'))
     }
   }
 
