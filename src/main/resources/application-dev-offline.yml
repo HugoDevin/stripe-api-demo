@@ -1,1 +1,7 @@
-# dev-offline uses FakePaymentGateway and internal simulation APIs.
+spring:
+  rabbitmq:
+    listener:
+      simple:
+        auto-startup: false
+      direct:
+        auto-startup: false

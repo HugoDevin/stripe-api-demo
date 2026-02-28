@@ -1,11 +1,13 @@
 package com.example.ecommerce.messaging.outbox;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
+@Profile("!dev-offline")
 public class OutboxPublisher {
   private final OutboxRepository repo; private final RabbitTemplate rabbit;
   public OutboxPublisher(OutboxRepository r, RabbitTemplate rabbit){repo=r;this.rabbit=rabbit;}
