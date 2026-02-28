@@ -38,7 +38,7 @@ Services:
   - `ROLE_ADMIN_SUPER`: user management + products/inventory + dev email page
   - `ROLE_ADMIN`: products/inventory only
 - Admin IP allowlist (app-layer) via `admin.allowed-cidrs`
-  - default: `127.0.0.1/32,10.0.0.0/8,192.168.0.0/16,172.16.0.0/12`
+  - default: `127.0.0.1/32,::1/128,10.0.0.0/8,192.168.0.0/16,172.16.0.0/12`
   - configurable by env: `ADMIN_ALLOWED_CIDRS`
 - In reverse proxy setups, app checks `X-Forwarded-For` first.
 

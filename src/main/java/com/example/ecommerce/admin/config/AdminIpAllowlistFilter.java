@@ -14,7 +14,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Component
 public class AdminIpAllowlistFilter extends OncePerRequestFilter {
   private final List<Cidr> cidrs;
-  public AdminIpAllowlistFilter(@Value("${admin.allowed-cidrs:127.0.0.1/32,10.0.0.0/8,192.168.0.0/16,172.16.0.0/12}") String allowed) {
+  public AdminIpAllowlistFilter(@Value("${admin.allowed-cidrs:127.0.0.1/32,::1/128,10.0.0.0/8,192.168.0.0/16,172.16.0.0/12}") String allowed) {
     this.cidrs = Arrays.stream(allowed.split(",")).map(String::trim).filter(s -> !s.isBlank()).map(Cidr::parse).toList();
   }
 
@@ -24,7 +24,7 @@ public class AdminIpAllowlistFilter extends OncePerRequestFilter {
     String ip = Optional.ofNullable(req.getHeader("X-Forwarded-For")).map(v -> v.split(",")[0].trim()).orElse(req.getRemoteAddr());
     try {
       InetAddress addr = InetAddress.getByName(ip);
-      boolean ok = cidrs.stream().anyMatch(c -> c.contains(addr));
+      boolean ok = addr.isLoopbackAddress() || cidrs.stream().anyMatch(c -> c.contains(addr));
       if (!ok) { res.sendError(HttpStatus.FORBIDDEN.value(), "admin access denied by ip policy"); return; }
     } catch (Exception e) { res.sendError(HttpStatus.FORBIDDEN.value(), "admin access denied"); return; }
     chain.doFilter(req, res);
