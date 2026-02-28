@@ -1,0 +1,10 @@
+<!doctype html><html xmlns:th="http://www.thymeleaf.org"><body>
+<h2>Admin Dashboard</h2>
+<nav>
+  <a th:href="@{/admin/products}">Products</a> |
+  <a th:href="@{/admin/inventory}">Inventory</a> |
+  <a th:href="@{/admin/users}">Users</a> |
+  <a th:href="@{/admin/dev/emails}">Dev Emails</a>
+</nav>
+<form method="post" th:action="@{/admin/logout}"><button>Logout</button></form>
+</body></html>

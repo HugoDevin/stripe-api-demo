@@ -1,0 +1,12 @@
+<!doctype html><html xmlns:th="http://www.thymeleaf.org"><body>
+<h3>Edit Product</h3>
+<form method="post" th:action="@{/admin/products/save}" th:object="${p}">
+  <input th:field="*{sku}" placeholder="sku"/>
+  <input th:field="*{name}" placeholder="name"/>
+  <input th:field="*{price}" placeholder="price"/>
+  <input th:field="*{currency}" placeholder="currency"/>
+  <label>active<input type="checkbox" th:field="*{active}"/></label>
+  <button>Save</button>
+</form>
+<form method="post" th:action="@{'/admin/products/'+${p.sku}+'/delete'}"><button>Delete</button></form>
+</body></html>
