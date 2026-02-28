@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -92,7 +93,12 @@ class StripeWebhookController {
         e = Event.GSON.fromJson(payload, Event.class);
       }
       if (webhookRepo.existsByProviderEventId(e.getId())) return;
-      WebhookEventEntity we = new WebhookEventEntity(); we.providerEventId=e.getId(); we.type=e.getType(); we.payloadJson=payload; webhookRepo.save(we);
+      try {
+        WebhookEventEntity we = new WebhookEventEntity(); we.providerEventId=e.getId(); we.type=e.getType(); we.payloadJson=payload; webhookRepo.save(we);
+      } catch (DataIntegrityViolationException ignored) {
+        if (!webhookRepo.existsByProviderEventId(e.getId())) throw ignored;
+        return;
+      }
       if (!e.getType().startsWith("payment_intent.")) return;
       PaymentIntent pi = (PaymentIntent) e.getDataObjectDeserializer().getObject().orElse(null);
       if (pi == null) return;
