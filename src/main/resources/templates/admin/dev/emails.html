@@ -1,0 +1,6 @@
+<!doctype html><html xmlns:th="http://www.thymeleaf.org"><body>
+<h3>Dev Email Outbox</h3>
+<table border="1"><tr><th>To</th><th>Subject</th><th>Verify URL</th><th>Created</th></tr>
+<tr th:each="e:${emails}"><td th:text="${e.toEmail}"></td><td th:text="${e.subject}"></td><td><a th:href="${e.verifyUrl}" th:text="${e.verifyUrl}"></a></td><td th:text="${e.createdAt}"></td></tr>
+</table>
+</body></html>

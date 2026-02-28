@@ -1,31 +1,36 @@
-server:
-  port: 8080
-
-stripe:
-  secret-key: ${STRIPE_SECRET_KEY}
-  publishable-key: ${STRIPE_PUBLISHABLE_KEY}
-
-app:
-  frontend-origin: ${FRONTEND_ORIGIN:http://localhost:5173}
-  payment:
-    currency: ${APP_PAYMENT_CURRENCY:usd}
-
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/stripe_demo}
-    username: ${SPRING_DATASOURCE_USERNAME:stripe_demo}
-    password: ${SPRING_DATASOURCE_PASSWORD:stripe_demo}
-    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:ecommerce}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
   jpa:
     hibernate:
-      ddl-auto: update
-    open-in-view: false
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+  rabbitmq:
+    host: ${RABBIT_HOST:localhost}
+    port: ${RABBIT_PORT:5672}
+    username: ${RABBIT_USER:guest}
+    password: ${RABBIT_PASSWORD:guest}
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-  cache:
-    # 預設維持 Redis；可用 SPRING_CACHE_TYPE=simple 或 none 覆寫
-    type: ${SPRING_CACHE_TYPE:redis}
-    redis:
-      time-to-live: 10m
+      repositories:
+        enabled: false
+logging:
+  pattern:
+    level: "%5p [corr:%X{correlationId}]"
+stripe:
+  secret-key: ${STRIPE_SECRET_KEY:}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+dev:
+  internal-token: ${DEV_INTERNAL_TOKEN:dev-token}
+
+app:
+  base-url: ${APP_BASE_URL:http://localhost:8080}
+admin:
+  allowed-cidrs: ${ADMIN_ALLOWED_CIDRS:127.0.0.1/32,::1/128,10.0.0.0/8,192.168.0.0/16,172.16.0.0/12}

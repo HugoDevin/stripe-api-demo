@@ -1,0 +1,6 @@
+<!doctype html><html xmlns:th="http://www.thymeleaf.org"><body>
+<h2>Email Verify Result</h2>
+<p th:if="${ok}">Email verified. Wait for super admin enablement.</p>
+<p th:unless="${ok}">Token invalid/expired/used.</p>
+<a th:href="@{/admin/login}">Login</a>
+</body></html>

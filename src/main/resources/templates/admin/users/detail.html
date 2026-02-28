@@ -1,0 +1,9 @@
+<!doctype html><html xmlns:th="http://www.thymeleaf.org"><body>
+<h3>User Detail</h3>
+<div th:text="${u.email}"></div>
+<div th:text="${u.role}"></div>
+<div>verified=<span th:text="${u.emailVerified}"></span></div>
+<div>enabled=<span th:text="${u.enabled}"></span></div>
+<form method="post" th:action="@{'/admin/users/'+${u.id}+'/enable'}"><input type="hidden" name="enabled" value="true"/><button>Enable</button></form>
+<form method="post" th:action="@{'/admin/users/'+${u.id}+'/enable'}"><input type="hidden" name="enabled" value="false"/><button>Disable</button></form>
+</body></html>
