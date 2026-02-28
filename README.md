@@ -53,6 +53,7 @@ curl -X POST localhost:8080/internal/payments/<ORDER_ID>/simulate-success -H 'X-
 
 ## Troubleshooting
 - Active profile format must be a comma-separated profile list only (e.g. `SPRING_PROFILES_ACTIVE=dev-offline`). Do **not** append other env vars into this same value.
+- If IDE logs show profiles like `"SPRING_PROFILES_ACTIVE=dev-offline"` or `"STRIPE_SECRET_KEY=..."` as active profiles, your Run Configuration is misconfigured: put these in **Environment Variables**, not in **Active profiles** field.
 - `unknown flag: --build`: install `docker-compose-plugin` or `docker-compose` binary.
 - `/usr/bin/env: ‘bash\r’: No such file or directory`: run `sed -i "s/\r$//" scripts/*.sh` once.
 - Admin blocked with 403: check `ADMIN_ALLOWED_CIDRS` and source IP / `X-Forwarded-For`.
