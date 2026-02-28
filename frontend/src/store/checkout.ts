@@ -10,6 +10,16 @@ import {
   type Product
 } from '../types/payment'
 
+
+const isLivePublishableKey = (key: string) => key.startsWith('pk_live_')
+
+const isSecureContextForLiveStripe = () => window.location.protocol === 'https:'
+
+const toErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error && error.message) return error.message
+  return fallback
+}
+
 export const useCheckoutStore = defineStore('checkout', () => {
   const products = ref<Product[]>([])
   const orders = ref<Order[]>([])
@@ -57,6 +67,12 @@ export const useCheckoutStore = defineStore('checkout', () => {
 
   const initializeStripe = async () => {
     if (!publishableKey.value) return
+
+    if (isLivePublishableKey(publishableKey.value) && !isSecureContextForLiveStripe()) {
+      ElMessage.error('目前使用 Stripe Live 金鑰，請改用 HTTPS 網址再進行付款')
+      return
+    }
+
     await loadStripeJs()
     stripe.value = window.Stripe(publishableKey.value)
   }
@@ -75,7 +91,7 @@ export const useCheckoutStore = defineStore('checkout', () => {
 
   const pay = async () => {
     if (!stripe.value) {
-      ElMessage.error('目前未設定 Stripe 金鑰，無法在此環境付款')
+      ElMessage.error('Stripe 尚未初始化；請確認 publishable key 設定，或改用 HTTPS（Live 金鑰必須）')
       return
     }
 
@@ -92,8 +108,8 @@ export const useCheckoutStore = defineStore('checkout', () => {
       ElMessage.success('付款已送出，等待 Stripe webhook 同步狀態')
       await loadOrders()
       activeStep.value = 2
-    } catch {
-      ElMessage.error('付款失敗，請檢查卡片資料或 Stripe 設定')
+    } catch (error: unknown) {
+      ElMessage.error(toErrorMessage(error, '付款失敗，請檢查卡片資料或 Stripe 設定'))
     } finally {
       paying.value = false
     }
